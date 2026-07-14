@@ -6,10 +6,10 @@ using UnityEngine;
 
 namespace LaunchInventoryTidy
 {
-    [BepInPlugin("com.yourname.launchinventorytidy", "LaunchInventoryTidy [v1.0 正式版]", "1.0.0")]
+    [BepInPlugin("com.yu80rice.launchinventorytidy", "LaunchInventoryTidy [v1.0 正式版]", "1.0.0")]
     public class LaunchInventoryTidyPlugin : BaseUnityPlugin
     {
-        public const string HARMONY_ID = "com.yourname.launchinventorytidy";
+        public const string HARMONY_ID = "com.yu80rice.launchinventorytidy";
 
         public static LaunchInventoryTidyPlugin Instance { get; private set; }
 
