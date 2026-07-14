@@ -1,0 +1,35 @@
+# ============== .NET Framework / Visual Studio ==============
+bin/
+obj/
+Debug/
+Release/
+*.dll.config
+*.pdb
+*.suo
+*.user
+*.userprefs
+*.cache
+*.log
+*.tlog
+*.idb
+*.opendb
+*.dbmdl
+*.jfm
+
+# ============== Visual Studio 临时目录 ==============
+.vs/
+.vscode/
+.idea/
+*.sln.docstates
+*.vshost.exe
+*.vshost.exe.config
+
+# ============== 本地依赖 DLL（如把 Unturned 游戏引用放入 Libs/ 子目录） ==============
+Libs/*.dll
+!Libs/README.md
+
+# ============== 操作系统 ==============
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
