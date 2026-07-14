@@ -13,6 +13,63 @@
 
 ---
 
+## 📌 前置与联动声明
+
+本插件是 [UMM �模组家族](https://github.com/YU80Rice/UnturnedModManager) 的成员之一，与其他家族成员存在明确的前置依赖与通道占用关系。**部署前请务必阅读本节。**
+
+### 🔧 前置依赖（必装）
+
+| 依赖 | 版本 | 仓库 | 用途 |
+|---|---|---|---|
+| **LaunchMultiplayerNet** | **v1.1.1+** | [github.com/YU80Rice/LaunchMultiplayerNet](https://github.com/YU80Rice/LaunchMultiplayerNet) | P2P 双端自适应网络传输层（本插件独占 Channel 100） |
+| BepInEx | 5.x | [github.com/BepInEx/BepInEx](https://github.com/BepInEx/BepInEx) | 模组加载器 |
+| Harmony | 2.x | [github.com/pardeike/Harmony](https://github.com/pardeike/Harmony) | 运行时方法注入（被动整理 Patch） |
+| Unturned | 3.x | [store.steampowered.com/app/304930](https://store.steampowered.com/app/304930/Unturned/) | 宿主游戏 |
+| Steamworks.NET | - | [github.com/rlabrecque/Steamworks.NET](https://github.com/rlabrecque/Steamworks.NET) | P2P 传输底层（随 Unturned 分发） |
+
+> ⚠️ **LaunchMultiplayerNet 是硬性前置**：缺少此前置库，本插件无法完成双端通信，客机按下整理键将无任何响应。前置库文件名必须为裸名 `LaunchMultiplayerNet.dll`（不带版本后缀），详见前置库仓库的"裸名铁律"。
+
+### 🌐 联动项目矩阵
+
+| 项目 | 角色 | 仓库 | 与本插件的关系 |
+|---|---|---|---|
+| **Unturned Mod Manager** | 宿主启动器（可选，推荐） | [github.com/YU80Rice/UnturnedModManager](https://github.com/YU80Rice/UnturnedModManager) | 一键部署 BepInEx + 本插件 + 前置库到游戏目录 |
+| **LaunchMultiplayerNet** | 前置库（必装） | [github.com/YU80Rice/LaunchMultiplayerNet](https://github.com/YU80Rice/LaunchMultiplayerNet) | 提供 Channel 100 通信基建 |
+| **LaunchInPlaceReload** | 兄弟模组 | [github.com/YU80Rice/LaunchInPlaceReload](https://github.com/YU80Rice/LaunchInPlaceReload) | 占用 Channel 101 (`RepackAmmo`)，与本插件无通道冲突 |
+| **LaunchHordeTracker** | 兄弟模组 | [github.com/YU80Rice/LaunchHordeTracker](https://github.com/YU80Rice/LaunchHordeTracker) | 占用 Channel 102 (`HordeStatus`)，与本插件无通道冲突 |
+
+### 📡 通道占用声明
+
+本插件在 `LaunchMultiplayerNet.ModChannels` 中**独占 Channel 100**：
+
+```csharp
+public const int TidyPage = 100;  // ← 本插件独占
+```
+
+子消息类型（`EModMessage`）：
+
+| 子消息 | 值 | 方向 | 用途 |
+|---|---|---|---|
+| `RequestTidyPage` | `1` | 客机 -> 服务器 | 请求整理背包（page + sortDescending） |
+
+**通道分配规则**：其他模组请从 Channel 103 起分配，详见 [LaunchMultiplayerNet 仓库的 `ModChannels.cs`](https://github.com/YU80Rice/LaunchMultiplayerNet/blob/main/ModChannels.cs)。
+
+### 💡 部署路径
+
+```
+<Unturned 游戏目录>/
+└── BepInEx/
+    └── plugins/
+        ├── LaunchMultiplayerNet.dll   ← 前置库（必装）
+        ├── LaunchInventoryTidy.dll     ← 本插件
+        ├── LaunchInPlaceReload.dll     ← 兄弟模组（可选）
+        └── LaunchHordeTracker.dll      ← 兄弟模组（可选）
+```
+
+> 💡 **独立部署说明**：即使没有 [UMM 启动器](https://github.com/YU80Rice/UnturnedModManager)，只要玩家本地已有现成的 **BepInEx 5** 环境，也可以直接把 `LaunchInventoryTidy.dll` + `LaunchMultiplayerNet.dll` 放入 `BepInEx/plugins/` 即可使用。UMM 启动器仅提供"一键部署 + DXVK 优化 + 一键启动"的便利能力，并非本插件运行的硬性要求。
+
+---
+
 ## 📖 项目简介
 
 `LaunchInventoryTidy` 是 [UMM 模组家族](https://github.com/YU80Rice/UnturnedModManager) 的成员之一，为 Unturned 玩家提供智能背包整理能力。模组自动重排玩家 5 个多格页（ITEMS / BACKPACK / VEST / SHIRT / PANTS）的物品布局，让背包瞬间井然有序。
@@ -128,24 +185,6 @@ some-folder/
 |---|---|
 | **房主**（`Provider.isServer=true`） | 直接在本地 `PlayerInventory` 上跑算法 |
 | **客机**（`Provider.isServer=false`） | 通过 P2P 通道 100 发送请求，服务器代为执行，原生事件链自动同步回所有客机 |
-
----
-
-## 🔗 联动项目
-
-### 🚀 Unturned Mod Manager (UMM) 主仓库
-
-🌐 **https://github.com/YU80Rice/UnturnedModManager**
-
-UMM 启动器是本插件的"宿主启动器"，提供 BepInEx 一键部署 + DXVK 极速优化 + 一键启动游戏能力。
-
-> 💡 **独立部署说明**：即使没有 UMM 启动器，只要玩家本地已有现成的 **BepInEx 5** 环境，也可以直接把 `LaunchInventoryTidy.dll` + `LaunchMultiplayerNet.dll` 放入 `BepInEx/plugins/` 即可使用。
-
-### 🌐 LaunchMultiplayerNet 前置库
-
-🌐 **https://github.com/YU80Rice/LaunchMultiplayerNet**
-
-本插件依赖此前置库实现双端自适应联机。Channel 100 (`ModChannels.TidyPage`) 由本插件独占。
 
 ---
 
