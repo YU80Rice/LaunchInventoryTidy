@@ -33,7 +33,7 @@
 
 | 项目 | 角色 | 仓库 | 与本插件的关系 |
 |---|---|---|---|
-| **Unturned Mod Manager** | 宿主启动器（可选，推荐） | [github.com/YU80Rice/UnturnedModManager](https://github.com/YU80Rice/UnturnedModManager) | 一键部署 BepInEx + 本插件 + 前置库到游戏目录 |
+| **Unturned Mod Manager** | 宿主启动器（可选，推荐） | [github.com/YU80Rice/UnturnedModManager](https://github.com/YU80Rice/UnturnedModManager) | 一键部署 BepInEx 核心 + 性能优化模组（WaterPerfOptimizer / LaunchPerfOptimizer）+ DXVK 优化；**本插件与前置库需手动放入 plugins/** |
 | **LaunchMultiplayerNet** | 前置库（必装） | [github.com/YU80Rice/LaunchMultiplayerNet](https://github.com/YU80Rice/LaunchMultiplayerNet) | 提供 Channel 100 通信基建 |
 | **LaunchInPlaceReload** | 兄弟模组 | [github.com/YU80Rice/LaunchInPlaceReload](https://github.com/YU80Rice/LaunchInPlaceReload) | 占用 Channel 101 (`RepackAmmo`)，与本插件无通道冲突 |
 | **LaunchHordeTracker** | 兄弟模组 | [github.com/YU80Rice/LaunchHordeTracker](https://github.com/YU80Rice/LaunchHordeTracker) | 占用 Channel 102 (`HordeStatus`)，与本插件无通道冲突 |
@@ -66,7 +66,9 @@ public const int TidyPage = 100;  // ← 本插件独占
         └── LaunchHordeTracker.dll      ← 兄弟模组（可选）
 ```
 
-> 💡 **独立部署说明**：即使没有 [UMM 启动器](https://github.com/YU80Rice/UnturnedModManager)，只要玩家本地已有现成的 **BepInEx 5** 环境，也可以直接把 `LaunchInventoryTidy.dll` + `LaunchMultiplayerNet.dll` 放入 `BepInEx/plugins/` 即可使用。UMM 启动器仅提供"一键部署 + DXVK 优化 + 一键启动"的便利能力，并非本插件运行的硬性要求。
+> 💡 **独立部署说明**：即使没有 [UMM 启动器](https://github.com/YU80Rice/UnturnedModManager)，只要玩家本地已有现成的 **BepInEx 5** 环境，也可以直接把 `LaunchInventoryTidy.dll` + `LaunchMultiplayerNet.dll` 放入 `BepInEx/plugins/` 即可使用。
+>
+> ⚠️ **关于 UMM 启动器的自动部署范围**：UMM 启动器**仅自动部署 BepInEx 核心与 2 个性能优化模组**（`WaterPerfOptimizer.dll` / `LaunchPerfOptimizer.dll`）。**本插件 `LaunchInventoryTidy.dll` 与前置库 `LaunchMultiplayerNet.dll` 不在自动部署清单内**，无论是否使用 UMM 启动器，这两个 DLL 都需要用户手动放入 `BepInEx/plugins/` 目录。
 
 ---
 
@@ -173,9 +175,10 @@ some-folder/
 
 ### 玩家侧
 
-1. **部署**：把编译好的 `LaunchInventoryTidy.dll` 放入 `<游戏目录>/BepInEx/plugins/`
-   - UMM 启动器用户：启动器会自动部署依赖前置库
-   - 独立 BepInEx 用户：需手动放入 `LaunchMultiplayerNet.dll` 到 `BepInEx/plugins/`
+1. **部署**：把编译好的 `LaunchInventoryTidy.dll` **和** `LaunchMultiplayerNet.dll`（前置库）一起放入 `<游戏目录>/BepInEx/plugins/`
+   - **UMM 启动器用户**：启动器仅自动部署 BepInEx 核心与性能优化模组（`WaterPerfOptimizer.dll` / `LaunchPerfOptimizer.dll`），**本插件与 `LaunchMultiplayerNet.dll` 不在自动部署清单内，仍需手动放入 `BepInEx/plugins/`**
+   - **独立 BepInEx 用户**：同样需要手动放入上述两个 DLL
+   - 两个 DLL 缺一不可：缺前置库则客机整理键无响应，缺本插件则按键完全无效
 2. **绑定按键**：游戏内 `Settings → Controls → Plugin 0` 绑定一个按键（如 F1）
 3. **触发整理**：打开背包 → 按下 Plugin 0 按键 → 背包瞬间整理完毕
 
