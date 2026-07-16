@@ -11,9 +11,10 @@ namespace LaunchInventoryTidy
     ///
     /// 协议（Channel 100 = ModChannels.TidyPage）：
     ///   客机 -> 服务器
-    ///     [EModMessage.RequestTidyPage: byte][page: byte]
+    ///     [EModMessage.RequestTidyPage: byte][page: byte][sortDescending: bool][mode: byte]
     ///     page = 0xFF 表示整理全部 5 个多格页（SLOTS..PANTS）；
-    ///     page ∈ [2..6] 表示仅整理指定页。
+    ///     page ∈ [2..6] 表示仅整理指定页；
+    ///     mode = 0 (MaxRects, C 优先) 或 1 (FFD, D 优先)。
     ///
     /// 服务器端处理：
     ///   1) 通过 sender CSteamID 在 Provider.clients 中反查 Player
@@ -33,7 +34,7 @@ namespace LaunchInventoryTidy
         /// <summary>由 Plugin.Awake 调用，注册服务器端通道处理器。</summary>
         public static void RegisterHandlers()
         {
-            ModP2PTransport.RegisterServerHandler(ModChannels.TidyPage, HandleRequestTidyPage);
+            ModTransport.RegisterServerHandler(ModChannels.TidyPage, HandleRequestTidyPage);
             LaunchInventoryTidyPlugin.Log?.LogInfo(
                 "[TidyNet] 已注册 channel=" + ModChannels.TidyPage + " 服务器端处理器");
         }
@@ -43,29 +44,32 @@ namespace LaunchInventoryTidy
         // ─────────────────────────────────────────────────────────────
 
         /// <summary>客机端：请求服务器帮我整理全部 5 个多格页。</summary>
-        public static void SendTidyAllRequest(bool sortDescending = true)
+        public static void SendTidyAllRequest(bool sortDescending = true, TidyMode mode = TidyMode.MaxRects)
         {
-            byte[] payload = ModP2PTransport.BuildMessage(EModMessage.RequestTidyPage, w =>
+            byte[] payload = ModTransport.BuildMessage(EModMessage.RequestTidyPage, w =>
             {
                 w.Write(ALL_PAGES);
                 w.Write(sortDescending);
+                w.Write((byte)mode);
             });
-            ModP2PTransport.SendToServer(ModChannels.TidyPage, payload, reliable: true);
+            ModTransport.SendToServer(ModChannels.TidyPage, payload, reliable: true);
             LaunchInventoryTidyPlugin.Log?.LogInfo(
-                $"[TidyNet] -> 服务器: RequestTidyPage(ALL, desc={sortDescending})");
+                $"[TidyNet] -> 服务器: RequestTidyPage(ALL, desc={sortDescending}, mode={mode})");
         }
 
         /// <summary>客机端：请求服务器帮我整理指定页。</summary>
-        public static void SendTidyPageRequest(byte page, bool sortDescending = true)
+        public static void SendTidyPageRequest(byte page, bool sortDescending = true,
+                                               TidyMode mode = TidyMode.MaxRects)
         {
-            byte[] payload = ModP2PTransport.BuildMessage(EModMessage.RequestTidyPage, w =>
+            byte[] payload = ModTransport.BuildMessage(EModMessage.RequestTidyPage, w =>
             {
                 w.Write(page);
                 w.Write(sortDescending);
+                w.Write((byte)mode);
             });
-            ModP2PTransport.SendToServer(ModChannels.TidyPage, payload, reliable: true);
+            ModTransport.SendToServer(ModChannels.TidyPage, payload, reliable: true);
             LaunchInventoryTidyPlugin.Log?.LogInfo(
-                $"[TidyNet] -> 服务器: RequestTidyPage(page={page}, desc={sortDescending})");
+                $"[TidyNet] -> 服务器: RequestTidyPage(page={page}, desc={sortDescending}, mode={mode})");
         }
 
         // ─────────────────────────────────────────────────────────────
@@ -76,8 +80,21 @@ namespace LaunchInventoryTidy
         {
             try
             {
+                // 读取并校验消息类型（BuildMessage 写入了 EModMessage 字节，必须先消费）
+                byte msgType = reader.ReadByte();
+                if (msgType != (byte)EModMessage.RequestTidyPage)
+                {
+                    LaunchInventoryTidyPlugin.Log?.LogWarning(
+                        $"[TidyNet] 收到未知消息类型 {msgType}，忽略");
+                    return;
+                }
+
                 byte page = reader.ReadByte();
                 bool sortDescending = reader.ReadBoolean();
+                // 向后兼容：v1.4 前无 mode 字节。若客户端是 v1.3，读不到 mode 时回退默认。
+                TidyMode mode = TidyMode.MaxRects;
+                try { mode = (TidyMode)reader.ReadByte(); }
+                catch { LaunchInventoryTidyPlugin.Log?.LogWarning("[TidyNet] 客户端协议较旧（无 mode 字节），回退 MaxRects"); }
 
                 Player player = ResolvePlayerBySteamId(sender);
                 if (player?.inventory == null)
@@ -89,9 +106,9 @@ namespace LaunchInventoryTidy
 
                 if (page == ALL_PAGES)
                 {
-                    ManualTidyService.TidyAllPlayerPages(player.inventory, sortDescending);
+                    ManualTidyService.TidyAllPlayerPages(player.inventory, sortDescending, mode);
                     LaunchInventoryTidyPlugin.Log?.LogInfo(
-                        $"[TidyNet] 服务器: 已为 sender={(ulong)sender} 整理全部页 (desc={sortDescending})");
+                        $"[TidyNet] 服务器: 已为 sender={(ulong)sender} 整理全部页 (desc={sortDescending}, mode={mode})");
                 }
                 else
                 {
@@ -109,9 +126,16 @@ namespace LaunchInventoryTidy
                     // 但服务器端 Player.LocalPlayer 不一定是 sender！必须用 sender 的 inventory。
                     // 调用 Items 重载避免误用 LocalPlayer。
                     Items items = player.inventory.items[page];
-                    ManualTidyService.TidyPage(items, page, sortDescending);
+                    // 诊断日志：打印 items 实际状态，便于排查"容器页整理无效"类问题
+                    int itemsW = items?.width ?? 0;
+                    int itemsH = items?.height ?? 0;
+                    int itemsCount = items?.getItemCount() ?? 0;
                     LaunchInventoryTidyPlugin.Log?.LogInfo(
-                        $"[TidyNet] 服务器: 已为 sender={(ulong)sender} 整理 page={page} (desc={sortDescending})");
+                        $"[TidyNet] 服务器诊断: sender={(ulong)sender} page={page} " +
+                        $"items={(items == null ? "null" : "Items")} width={itemsW} height={itemsH} count={itemsCount}");
+                    ManualTidyService.TidyPage(items, page, sortDescending, mode);
+                    LaunchInventoryTidyPlugin.Log?.LogInfo(
+                        $"[TidyNet] 服务器: 已为 sender={(ulong)sender} 整理 page={page} (desc={sortDescending}, mode={mode})");
                 }
             }
             catch (Exception e)
@@ -139,8 +163,14 @@ namespace LaunchInventoryTidy
             for (int i = 0; i < clients.Count; i++)
             {
                 SteamPlayer sp = clients[i];
-                if (sp == null || sp.playerID == null) continue;
-                if ((ulong)sp.playerID.steamID == targetId)
+                if (sp == null) continue;
+
+                // SteamPlayerID 重载了 == 运算符但未做 null 检查（SteamPlayerID.cs:136-139），
+                // 直接用 sp.playerID == null 会触发 NRE。必须用 ReferenceEquals 判空。
+                SteamPlayerID pid = sp.playerID;
+                if (ReferenceEquals(pid, null)) continue;
+
+                if ((ulong)pid.steamID == targetId)
                     return sp.player;
             }
             return null;

@@ -6,7 +6,8 @@ using UnityEngine;
 
 namespace LaunchInventoryTidy
 {
-    [BepInPlugin("com.yu80rice.launchinventorytidy", "LaunchInventoryTidy [v1.0 正式版]", "1.0.0")]
+    [BepInPlugin("com.yu80rice.launchinventorytidy", "LaunchInventoryTidy [v1.4 v3.2 网络层适配 + MaxRects]", "1.4.0")]
+    [BepInDependency(LaunchMultiplayerNetPlugin.Guid, BepInDependency.DependencyFlags.HardDependency)]
     public class LaunchInventoryTidyPlugin : BaseUnityPlugin
     {
         public const string HARMONY_ID = "com.yu80rice.launchinventorytidy";
@@ -28,14 +29,14 @@ namespace LaunchInventoryTidy
             HarmonyInstance = new Harmony(HARMONY_ID);
             HarmonyInstance.PatchAll();
 
-            // 初始化 P2P 网络层并注册通道处理器
-            ModP2PTransport.Initialize();
+            // LaunchMultiplayerNetPlugin.Awake 已自动 ModTransport.Initialize()，
+            // 此处仅注册本插件的服务器端通道处理器（注册时自动回放暂存请求）。
             ManualTidyNetwork.RegisterHandlers();
 
             SpawnManualTidyWatcher();
 
             Logger.LogInfo("===============================================");
-            Logger.LogInfo(" LaunchInventoryTidy 已加载（被动+手动整理+联机）");
+            Logger.LogInfo(" LaunchInventoryTidy v1.4 已加载（v3.2 网络层适配 + MaxRects）");
             Logger.LogInfo("===============================================");
         }
 

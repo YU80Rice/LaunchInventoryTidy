@@ -57,18 +57,29 @@ namespace LaunchInventoryTidy.Patches
         private static readonly Dictionary<byte, object> s_DirectionButtons =
             new Dictionary<byte, object>();
 
+        // ── 业务状态：每页整理模式字典 + 模式按钮实例引用 ──
+        // key = page (2..7)，value = TidyMode.MaxRects(C) 或 TidyMode.FFD(D)。默认 MaxRects。
+        private static readonly Dictionary<byte, TidyMode> s_PageTidyMode =
+            new Dictionary<byte, TidyMode>();
+        // key = page，value = 该页模式按钮的反射实例（用于切换文本）。
+        private static readonly Dictionary<byte, object> s_ModeButtons =
+            new Dictionary<byte, object>();
+
         // ── 按钮布局常量 ──
         // 右侧预留 70px 安全空间，避让原版 "100%" 耐久度文字与绿色品质角标。
         //
         // 排版几何（PositionScale_X = 1，相对父容器右边缘）：
         //   - [整理] 按钮 B：宽 60，PositionOffset_X = -130  -> 右边缘 -70，恰好填满安全区左边界
         //   - [↓]/[↑] 按钮 A：宽 40，PositionOffset_X = -175 -> 右边缘 -135，与 B 左边缘(-130) 间隔 5px
+        //   - [C]/[D]  按钮 M：宽 40，PositionOffset_X = -220 -> 右边缘 -180，与 A 左边缘(-175) 间隔 5px
         //
-        // 视觉顺序（从左到右）：[↓/↑]  5px  [整理]  70px  [原版 100% 耐久度+绿色角标]
-        private const float DIR_POS_OFFSET_X  = -175f;
-        private const float DIR_SIZE_X        = 40f;
-        private const float BTN_SIZE_Y        = 60f;
-        private const float TIDY_POS_OFFSET_X = -130f;
+        // 视觉顺序（从左到右）：[C/D]  5px  [↓/↑]  5px  [整理]  70px  [原版 100% 耐久度+绿色角标]
+        private const float MODE_POS_OFFSET_X  = -220f;
+        private const float MODE_SIZE_X        = 40f;
+        private const float DIR_POS_OFFSET_X   = -175f;
+        private const float DIR_SIZE_X         = 40f;
+        private const float BTN_SIZE_Y         = 60f;
+        private const float TIDY_POS_OFFSET_X  = -130f;
         private const float TIDY_SIZE_X        = 60f;
 
         // ── 容器页（page=STORAGE=7，headers[5]）专用布局 ──
@@ -79,8 +90,10 @@ namespace LaunchInventoryTidy.Patches
         // 排版几何：
         //   - [整理] 按钮 B：宽 60，PositionOffset_X = -240 -> 右边缘 -180，恰好填满安全区左边界
         //   - [↓]/[↑] 按钮 A：宽 40，PositionOffset_X = -285 -> 右边缘 -245，与 B 左边缘(-240) 间隔 5px
+        //   - [C]/[D]  按钮 M：宽 40，PositionOffset_X = -330 -> 右边缘 -290，与 A 左边缘(-285) 间隔 5px
         //
-        // 视觉顺序：[↓/↑]  5px  [整理]  180px 安全区  [rot_x/y/z 或空]
+        // 视觉顺序：[C/D]  5px  [↓/↑]  5px  [整理]  180px 安全区  [rot_x/y/z 或空]
+        private const float STORAGE_MODE_POS_OFFSET_X = -330f;
         private const float STORAGE_DIR_POS_OFFSET_X  = -285f;
         private const float STORAGE_TIDY_POS_OFFSET_X = -240f;
 
@@ -90,6 +103,7 @@ namespace LaunchInventoryTidy.Patches
         private const string TOOLTIP_TIDY =
             "左键点击：整理当前空间的物品。\nCtrl + 左键点击：一键自动整理全身背包。";
         private const string TOOLTIP_DIR = "切换排序方向（↓ 从大到小 / ↑ 从小到大）";
+        private const string TOOLTIP_MODE = "整理模式：C=剩余大矩形优先 / D=大件优先贪心";
 
         private static void LogError(string msg) => Debug.LogError($"{TAG} {msg}");
         private static void LogInfo(string msg)  => Debug.Log($"{TAG} {msg}");
@@ -296,9 +310,11 @@ namespace LaunchInventoryTidy.Patches
             {
                 byte currentPage = (byte)(i + 2);
                 EnsurePageDefault(currentPage);
+                EnsurePageModeDefault(currentPage);
 
                 // 容器页（i=5, page=7=STORAGE）使用专用偏移避让 rot 按钮区
                 bool isStoragePage = (i == 5);
+                float modePosOffsetX = isStoragePage ? STORAGE_MODE_POS_OFFSET_X : MODE_POS_OFFSET_X;
                 float dirPosOffsetX  = isStoragePage ? STORAGE_DIR_POS_OFFSET_X  : DIR_POS_OFFSET_X;
                 float tidyPosOffsetX = isStoragePage ? STORAGE_TIDY_POS_OFFSET_X : TIDY_POS_OFFSET_X;
 
@@ -308,6 +324,32 @@ namespace LaunchInventoryTidy.Patches
                     LogError($"headers[{i}] 为 null，跳过");
                     continue;
                 }
+
+                // ── 创建模式按钮 M：[C]/[D] ──
+                object modeButton;
+                try { modeButton = s_CreateButton.Invoke(glazier, s_EmptyArgs); }
+                catch (Exception e) { LogError($"headers[{i}] modeButton CreateButton 失败: {e}"); continue; }
+                if (modeButton == null) { LogError($"headers[{i}] modeButton 返回 null"); continue; }
+
+                try
+                {
+                    s_PosScaleX  .SetValue(modeButton, 1f,                  null);
+                    s_PosOffsetX .SetValue(modeButton, modePosOffsetX,      null);
+                    s_SizeOffsetX.SetValue(modeButton, MODE_SIZE_X,          null);
+                    s_SizeOffsetY.SetValue(modeButton, BTN_SIZE_Y,           null);
+                    s_Text       .SetValue(modeButton,
+                        s_PageTidyMode[currentPage] == TidyMode.MaxRects ? "C" : "D", null);
+                    s_TooltipText.SetValue(modeButton, TOOLTIP_MODE,         null);
+                }
+                catch (Exception e) { LogError($"headers[{i}] modeButton 属性设置失败: {e}"); }
+
+                // 绑定模式按钮点击事件 -> HandleModeClick(currentPage)
+                try
+                {
+                    Delegate modeHandler = CreatePageDelegate(s_OnClicked.EventHandlerType, currentPage, ButtonKind.Mode);
+                    s_OnClicked.AddEventHandler(modeButton, modeHandler);
+                }
+                catch (Exception e) { LogError($"headers[{i}] modeButton 事件绑定失败: {e}"); }
 
                 // ── 创建方向按钮 A：[↓]/[↑] ──
                 object dirButton;
@@ -329,7 +371,7 @@ namespace LaunchInventoryTidy.Patches
                 // 绑定方向按钮点击事件 -> HandleDirectionClick(currentPage)
                 try
                 {
-                    Delegate dirHandler = CreatePageDelegate(s_OnClicked.EventHandlerType, currentPage, isDirection: true);
+                    Delegate dirHandler = CreatePageDelegate(s_OnClicked.EventHandlerType, currentPage, ButtonKind.Direction);
                     s_OnClicked.AddEventHandler(dirButton, dirHandler);
                 }
                 catch (Exception e) { LogError($"headers[{i}] dirButton 事件绑定失败: {e}"); }
@@ -354,7 +396,7 @@ namespace LaunchInventoryTidy.Patches
                 // 绑定整理按钮点击事件 -> HandleTidyClick(currentPage)
                 try
                 {
-                    Delegate tidyHandler = CreatePageDelegate(s_OnClicked.EventHandlerType, currentPage, isDirection: false);
+                    Delegate tidyHandler = CreatePageDelegate(s_OnClicked.EventHandlerType, currentPage, ButtonKind.Tidy);
                     s_OnClicked.AddEventHandler(tidyButton, tidyHandler);
                 }
                 catch (Exception e) { LogError($"headers[{i}] tidyButton 事件绑定失败: {e}"); }
@@ -362,6 +404,8 @@ namespace LaunchInventoryTidy.Patches
                 // ── AddChild 到 header ──
                 try
                 {
+                    s_OneArg[0] = modeButton;
+                    s_AddChild.Invoke(headerElement, s_OneArg);
                     s_OneArg[0] = dirButton;
                     s_AddChild.Invoke(headerElement, s_OneArg);
                     s_OneArg[0] = tidyButton;
@@ -370,11 +414,12 @@ namespace LaunchInventoryTidy.Patches
                 catch (Exception e) { LogError($"headers[{i}] AddChild 失败: {e}"); }
 
                 s_DirectionButtons[currentPage] = dirButton;
+                s_ModeButtons[currentPage] = modeButton;
                 injected++;
-                LogInfo($"headers[{i}] -> page {currentPage} 双按钮注入 OK");
+                LogInfo($"headers[{i}] -> page {currentPage} 三按钮注入 OK");
             }
 
-            LogInfo($"==== 注入完成：共 {injected}/{HEADER_INJECT_COUNT} 组双按钮 ====");
+            LogInfo($"==== 注入完成：共 {injected}/{HEADER_INJECT_COUNT} 组三按钮 ====");
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -386,11 +431,19 @@ namespace LaunchInventoryTidy.Patches
                 s_PageSortDescending[page] = true; // 默认降序
         }
 
+        private static void EnsurePageModeDefault(byte page)
+        {
+            if (!s_PageTidyMode.ContainsKey(page))
+                s_PageTidyMode[page] = TidyMode.MaxRects; // 默认 C 优先
+        }
+
         // ─────────────────────────────────────────────────────────────────
         // 委托生成（Emit）：把 page 常量嵌入到 OnClicked 委托的调用链中。
         // ClickedButton 签名为 void(ISleekElement)，所以 DynamicMethod 接收一个参数。
         // ─────────────────────────────────────────────────────────────────
-        private static Delegate CreatePageDelegate(Type delegateType, byte page, bool isDirection)
+        private enum ButtonKind { Direction, Tidy, Mode }
+
+        private static Delegate CreatePageDelegate(Type delegateType, byte page, ButtonKind kind)
         {
             MethodInfo invokeMethod = delegateType.GetMethod("Invoke");
             ParameterInfo[] parameters = invokeMethod.GetParameters();
@@ -398,21 +451,35 @@ namespace LaunchInventoryTidy.Patches
                 ? new[] { parameters[0].ParameterType }
                 : Type.EmptyTypes;
 
+            string prefix;
+            MethodInfo target;
+            switch (kind)
+            {
+                case ButtonKind.Direction:
+                    prefix = "DirClick_";
+                    target = typeof(PlayerDashboardInventoryUIPatch).GetMethod("HandleDirectionClick",
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    break;
+                case ButtonKind.Mode:
+                    prefix = "ModeClick_";
+                    target = typeof(PlayerDashboardInventoryUIPatch).GetMethod("HandleModeClick",
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    break;
+                default:
+                    prefix = "TidyClick_";
+                    target = typeof(PlayerDashboardInventoryUIPatch).GetMethod("HandleTidyClick",
+                        BindingFlags.Static | BindingFlags.NonPublic);
+                    break;
+            }
+
             var dm = new DynamicMethod(
-                (isDirection ? "DirClick_" : "TidyClick_") + page + "_" + Guid.NewGuid().ToString("N").Substring(0, 6),
+                prefix + page + "_" + Guid.NewGuid().ToString("N").Substring(0, 6),
                 null,
                 paramTypes,
                 typeof(PlayerDashboardInventoryUIPatch));
 
             var il = dm.GetILGenerator();
-            // 把 page 常量压栈
             il.Emit(OpCodes.Ldc_I4, (int)page);
-            // 调用对应静态方法
-            MethodInfo target = isDirection
-                ? typeof(PlayerDashboardInventoryUIPatch).GetMethod("HandleDirectionClick",
-                    BindingFlags.Static | BindingFlags.NonPublic)
-                : typeof(PlayerDashboardInventoryUIPatch).GetMethod("HandleTidyClick",
-                    BindingFlags.Static | BindingFlags.NonPublic);
             il.Emit(OpCodes.Call, target);
             il.Emit(OpCodes.Ret);
 
@@ -441,11 +508,33 @@ namespace LaunchInventoryTidy.Patches
         }
 
         // ─────────────────────────────────────────────────────────────────
+        // 事件回调：模式按钮点击 -> 切换该页整理模式 + 更新按钮文本
+        // C = MaxRects（剩余大矩形优先），D = FFD（大件优先贪心）
+        // ─────────────────────────────────────────────────────────────────
+        private static void HandleModeClick(byte page)
+        {
+            EnsurePageModeDefault(page);
+            s_PageTidyMode[page] = s_PageTidyMode[page] == TidyMode.MaxRects
+                ? TidyMode.FFD
+                : TidyMode.MaxRects;
+
+            string label = s_PageTidyMode[page] == TidyMode.MaxRects ? "C" : "D";
+            if (s_ModeButtons.TryGetValue(page, out object btn) && btn != null)
+            {
+                try { s_Text.SetValue(btn, label, null); }
+                catch (Exception e) { LogError($"page {page} 模式按钮文本切换失败: {e}"); }
+            }
+            LogInfo($"page {page} 整理模式切换为 {label}");
+        }
+
+        // ─────────────────────────────────────────────────────────────────
         // 事件回调：整理按钮点击
         //   - Ctrl 按下 -> 整理全身（用当前页的方向作为统一方向，尊重玩家最近的选择）
         //   - 否则     -> 仅整理当前页
         //
-        // 双端自适应：房主直接执行；客机通过 P2P 通道发请求给服务器
+        // v2.0 架构：房主 = 普通客户端，统一走网络请求 -> U3DS 服务器
+        // 服务器在 sender 的 inventory 上执行，vanilla onItemAdded/onItemRemoved 事件链
+        // 自动同步回所有客机端（含房主）
         // ─────────────────────────────────────────────────────────────────
         private static void HandleTidyClick(byte page)
         {
@@ -458,37 +547,21 @@ namespace LaunchInventoryTidy.Patches
 
             bool ctrl = InputEx.GetKey(KeyCode.LeftControl) || InputEx.GetKey(KeyCode.RightControl);
             EnsurePageDefault(page);
+            EnsurePageModeDefault(page);
             bool desc = s_PageSortDescending[page];
+            TidyMode mode = s_PageTidyMode[page];
 
             try
             {
-                if (Provider.isServer)
+                if (ctrl)
                 {
-                    // 房主：直接执行
-                    if (ctrl)
-                    {
-                        LogInfo($"Ctrl+点击 -> 一键整理全身 (方向={desc}) [房主本地]");
-                        ManualTidyService.TidyAllPlayerPages(player.inventory, desc);
-                    }
-                    else
-                    {
-                        LogInfo($"点击 -> 整理 page {page} (方向={desc}) [房主本地]");
-                        ManualTidyService.TidyPage(page, desc);
-                    }
+                    LogInfo($"Ctrl+点击 -> 一键整理全身 (方向={desc}, 模式={mode}) [网络请求]");
+                    ManualTidyNetwork.SendTidyAllRequest(desc, mode);
                 }
                 else
                 {
-                    // 客机：通过网络请求服务器
-                    if (ctrl)
-                    {
-                        LogInfo($"Ctrl+点击 -> 一键整理全身 (方向={desc}) [客机 P2P 请求]");
-                        ManualTidyNetwork.SendTidyAllRequest(desc);
-                    }
-                    else
-                    {
-                        LogInfo($"点击 -> 整理 page {page} (方向={desc}) [客机 P2P 请求]");
-                        ManualTidyNetwork.SendTidyPageRequest(page, desc);
-                    }
+                    LogInfo($"点击 -> 整理 page {page} (方向={desc}, 模式={mode}) [网络请求]");
+                    ManualTidyNetwork.SendTidyPageRequest(page, desc, mode);
                 }
             }
             catch (Exception e)

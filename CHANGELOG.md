@@ -5,6 +5,120 @@
 
 ---
 
+## [v1.4.0] - 2026/07/16
+
+### 🎉 MaxRects 装箱算法 + C/D 模式切换按钮
+
+#### ✨ 新增功能
+
+##### MaxRects 算法（C 优先级，剩余大矩形优先）
+- **`InventorySolver.TryPackMaxRects`**：标准 MaxRects 实现
+- **BSSF（Best Short Side Fit）**：短边剩余最小者优先，tie-break 取长边剩余最小
+- **矩形分裂**：放置物品后把被占用的矩形分裂为最多 4 个新剩余矩形（上/下/左/右）
+- **`PruneContainedRects`**：清理被包含的矩形，避免列表膨胀
+- **保证剩余空间为若干大矩形而非碎片**，适合需要保留大连续空间的场景
+
+##### TidyMode 枚举
+```csharp
+public enum TidyMode : byte
+{
+    MaxRects = 0,  // C: 剩余大矩形优先
+    FFD = 1,       // D: 大件优先贪心
+}
+```
+
+##### UI 模式切换按钮
+- 每个多格页标题栏新增 `[C]/[D]` 按钮（位于 `[↓]/[↑]` 按钮左侧）
+- 每页独立记忆模式状态，默认 C（MaxRects）
+- 容器页（STORAGE）使用专用布局 `STORAGE_MODE_POS_OFFSET_X=-330f` 避让 rot_x/y/z 按钮
+- 新增 `s_PageTidyMode` / `s_ModeButtons` 字典
+- 新增 `HandleModeClick` 方法，`CreatePageDelegate` 改用 `ButtonKind` 枚举
+
+##### 网络协议扩展
+- 协议追加 `[mode: byte]` 字段（在 sortDescending 后）
+- `SendTidyAllRequest` / `SendTidyPageRequest` 加 `TidyMode mode` 参数
+- 服务器端 `HandleRequestTidyPage` 读取 mode（带 try-catch 向后兼容 v1.3）
+
+#### 🔧 改进
+
+##### 调用方透传 mode 参数
+- `ManualTidyService` 4 个方法签名加 `TidyMode mode = TidyMode.MaxRects`
+- `ItemsTryAddItemPatch` 被动整理恒用 `TidyMode.MaxRects`（C 优先）
+- `ManualTidyWatcher` Plugin 0 按键恒用 `TidyMode.MaxRects`
+
+##### 诊断日志（容器页整理问题排查）
+- `ManualTidyNetwork.HandleRequestTidyPage` 打印 items 实际状态（width/height/count）
+- `ManualTidyService.TidyPage` 把静默 return 改为带日志 return，便于排查"容器页整理无效"类问题
+
+#### 📐 布局常量
+- 玩家页：`MODE_POS_OFFSET_X=-220f` / `MODE_SIZE_X=40f`
+- 容器页：`STORAGE_MODE_POS_OFFSET_X=-330f`
+- 视觉顺序：`[C/D] 5px [↓/↑] 5px [整理] 70px/180px 安全区`
+
+#### 📦 版本号
+- `AssemblyVersion` / `AssemblyFileVersion`: 1.4.0.0
+- BepInEx 插件名: `LaunchInventoryTidy [v1.4 v3.2 网络层适配 + MaxRects]`
+
+---
+
+## [v1.3.0] - 2026/07/15
+
+### 🔧 v3.2 网络层适配 + NRE 修复
+
+#### ✨ 适配 LaunchMultiplayerNet v3.2
+- 新增 `[BepInDependency(LaunchMultiplayerNetPlugin.Guid, HardDependency)]` 声明
+- 移除手动 `ModTransport.Initialize()` 调用（v3.0+ 由 LaunchMultiplayerNetPlugin.Awake 自动初始化）
+- 仅注册本插件的服务器端通道处理器（`ManualTidyNetwork.RegisterHandlers`）
+
+#### 🐛 Bug 修复
+
+##### SteamPlayerID == 运算符 NRE 陷阱
+- **根因**：`SteamPlayerID.cs:136-139` 重载了 `==`/`!=` 运算符但未做 null 检查，`sp.playerID == null` 会触发 NRE
+- **修复**：`ManualTidyNetwork.ResolvePlayerBySteamId` 改用 `ReferenceEquals(pid, null)` 判空，并用局部变量 `pid` 避免双重属性访问
+
+##### Provider.isServer 死分支移除
+- **根因**：v2.0 弃用 listen server 后，房主 = 普通客户端，`Provider.isServer` 在 dedicated server 模式下恒为 false
+- **修复**：`PlayerDashboardInventoryUIPatch.HandleTidyClick` 移除 `if (Provider.isServer)` 分支，统一走网络请求路径
+
+#### 📦 版本号
+- `AssemblyVersion` / `AssemblyFileVersion`: 1.3.0.0
+- BepInEx 插件名: `LaunchInventoryTidy [v1.3 v3.2 网络层适配]`
+
+---
+
+## [v1.2.0] - 2026/07/15
+
+### 🔧 v3.0 网络层适配
+
+#### ✨ 适配 LaunchMultiplayerNet v3.0
+- 协议改为 vanilla SteamChannel(id=200) + `[SteamCall]` RPC 框架
+- `ManualTidyNetwork` 改用 `ModTransport.SendToServer` / `RegisterServerHandler` API
+- 移除 SteamNetworking P2P 直发逻辑
+
+#### 🐛 Bug 修复
+- 修复 listen server 模式下 SDR 路由不可用导致客机请求无法抵达服务器的问题（v3.0 改用 vanilla SteamChannel 绕过）
+
+#### 📦 版本号
+- `AssemblyVersion` / `AssemblyFileVersion`: 1.2.0.0
+
+---
+
+## [v1.1.0] - 2026/07/14
+
+### 🔧 v2.x 网络层适配（已废弃）
+
+> ⚠️ 本版本对应的 LaunchMultiplayerNet v2.x 架构（SteamNetworking P2P）已在 v3.0 弃用
+
+#### ✨ 适配 LaunchMultiplayerNet v2.x
+- 改用 SteamNetworking P2P 直发架构
+- `ManualTidyWatcher` 加 Poll 机制轮询 P2P 消息
+
+#### 🐛 已知问题（v3.0 修复）
+- listen server 模式下 SDR 路由不可用
+- dedicated server 模式下未验证
+
+---
+
 ## [v1.0.0] - 2026/07/14
 
 ### 🎉 首次开源发布
@@ -53,7 +167,7 @@ LaunchInventoryTidy 作为 UMM 模组家族成员，首次开源至 GitHub。
 - `LaunchInventoryTidy.dll` - BepInEx 插件
 - 目标框架：.NET Framework 4.7.2
 - 部署路径：`BepInEx/plugins/`
-- 依赖前置库：`LaunchMultiplayerNet.dll`（v1.1.1+）
+- 依赖前置库：`LaunchMultiplayerNet.dll`（v1.1.1+，现已要求 v3.2+）
 
 ### 🔒 已知限制
 

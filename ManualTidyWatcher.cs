@@ -8,11 +8,13 @@ namespace LaunchInventoryTidy
     /// 监听 Unturned 原生 Plugin 0 按键，触发玩家 5 个多格页（page 2-6）的手动整理。
     /// 玩家需在 Settings -> Controls 中给 Plugin 0 槽位绑定键位后才生效；未绑定时静默不触发。
     ///
-    /// 双端自适应（Multiplayer Consistency）：
-    /// - Provider.isServer == true（房主）：直接在本地 PlayerInventory 上跑算法
-    /// - Provider.isServer == false（客机）：通过 P2P 通道 ModChannels.TidyPage 向服务器
-    ///   发送 RequestTidyPage 包，服务器在 sender 的 inventory 上执行，原生 onItemAdded/
-    ///   onItemRemoved 事件链自动把结果同步回客机端
+    /// v2.0 架构（2026-07-14 重构）：
+    /// - 弃用 listen server + SteamNetworking P2P，改用 U3DS dedicated server + vanilla SteamChannel
+    /// - 房主 Unturned 客户端 = 普通客户端，请求统一走 ModTransport.SendToServer -> U3DS
+    /// - U3DS 收到请求后在 sender 的 inventory 上执行，vanilla onItemAdded/onItemRemoved 事件链
+    ///   自动同步回所有客机端
+    /// - 删除 Poll（vanilla SteamChannel 自动路由）
+    /// - 删除 Provider.isServer 分支（房主也是客户端，统一发请求给 U3DS）
     /// </summary>
     public class ManualTidyWatcher : MonoBehaviour
     {
@@ -20,9 +22,6 @@ namespace LaunchInventoryTidy
 
         private void Update()
         {
-            // 必须每帧驱动 P2P 轮询（房主收请求，客机无动作但调用安全）
-            ModP2PTransport.Poll();
-
             Player player = Player.LocalPlayer;
             if (player == null || player.inventory == null) return;
 
@@ -33,16 +32,9 @@ namespace LaunchInventoryTidy
 
             try
             {
-                if (Provider.isServer)
-                {
-                    // 房主：直接执行（无需网络往返）
-                    ManualTidyService.TidyAllPlayerPages(player.inventory);
-                }
-                else
-                {
-                    // 客机：发请求包给服务器
-                    ManualTidyNetwork.SendTidyAllRequest(sortDescending: true);
-                }
+                // 统一走网络路径：客户端 -> U3DS 服务器 -> 自动事件同步回客户端
+                // Watcher 是全身整理，无当前页概念，恒用 MaxRects（C 优先）
+                ManualTidyNetwork.SendTidyAllRequest(sortDescending: true, mode: TidyMode.MaxRects);
             }
             catch (System.Exception e)
             {

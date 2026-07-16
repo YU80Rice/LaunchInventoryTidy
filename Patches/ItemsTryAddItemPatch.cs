@@ -8,12 +8,14 @@ namespace LaunchInventoryTidy.Patches
     /// 拦截 Items.tryAddItem，在背包已散乱导致 tryFindSpace 失败时，
     /// 启用 2D 装箱求解器对整个网格进行重组，让原本"装不下"的物品能塞进去。
     ///
-    /// 行为流程（根据 spec）：
-    ///  1) 装备槽单格页 (page < PlayerInventory.SLOTS) → 放行原版逻辑
-    ///  2) tryFindSpace 已能找到空位 → 放行原版逻辑
+    /// 行为流程：
+    ///  1) 装备槽单格页 (page &lt; PlayerInventory.SLOTS) -> 放行原版逻辑
+    ///  2) tryFindSpace 已能找到空位 -> 放行原版逻辑
     ///  3) 调用 InventorySolver.TryPack 重排整个网格（含新物品）
-    ///     - 装不下 → 放行原版逻辑（让其返回 false）
-    ///     - 装得下 → 真实执行 removeItem + addItem 完成重组，
+    ///     - TryPack 返回 false（部分物品未放置） -> 放行原版逻辑（让其返回 false）
+    ///     - TryPack 返回 true（全部合法物品已放置） -> 真实执行 removeItem + addItem
+    ///       Placed=true 的物品按 ResultX/Y/Rot 重排
+    ///       Placed=false 的物品（异常 size=0 等）尝试恢复原位，原位被占则 tryFindSpace
     ///       __result = true 并跳过原方法
     ///
     /// 注意：本补丁在 Prefix 内同步执行 removeItem/addItem，会触发
@@ -40,7 +42,7 @@ namespace LaunchInventoryTidy.Patches
                 return true;
             }
 
-            // 拿新物品的尺寸（与 ItemJar 构造时同一路径：item.GetAsset() → asset.size_x/size_y）
+            // 拿新物品的尺寸（与 ItemJar 构造时同一路径：item.GetAsset() -> asset.size_x/size_y）
             ItemAsset asset = newItem.GetAsset();
             if (asset == null)
             {
@@ -51,7 +53,7 @@ namespace LaunchInventoryTidy.Patches
             byte newItemSx = asset.size_x;
             byte newItemSy = asset.size_y;
 
-            // 2) 先看是否有现成空位 —— 若原生 tryFindSpace 已能解决，无需重排
+            // 2) 先看是否有现成空位 -- 若原生 tryFindSpace 已能解决，无需重排
             if (__instance.tryFindSpace(newItemSx, newItemSy, out _, out _, out _))
             {
                 return true;
@@ -59,14 +61,11 @@ namespace LaunchInventoryTidy.Patches
 
             // 3) 构建 InventorySolver 输入列表
             var packList = new List<PackableItem>();
-            // 备份现有 ItemJar 引用（removeItem 后 List 会变化，所以预先快照）
-            var backupJars = new List<ItemJar>(__instance.getItemCount());
             byte existingCount = __instance.getItemCount();
             for (byte i = 0; i < existingCount; i++)
             {
                 ItemJar jar = __instance.getItem(i);
                 if (jar == null) continue;
-                backupJars.Add(jar);
                 packList.Add(new PackableItem
                 {
                     Tag = jar,
@@ -82,30 +81,26 @@ namespace LaunchInventoryTidy.Patches
                 size_y = newItemSy,
             });
 
-            // 4) 调用算法（被动整理路径恒用降序，与原 FFD 行为一致）
-            if (!InventorySolver.TryPack(__instance.width, __instance.height, packList, out var result, sortDescending: true))
+            // 4) 调用算法（被动整理路径恒用 MaxRects + 降序，C 优先级与用户要求一致）
+            //    TryPack 返回 false 表示部分合法物品未放置 -> 放行原版（不破坏现有物品）
+            if (!InventorySolver.TryPack(__instance.width, __instance.height, packList,
+                                          out var result, sortDescending: true, mode: TidyMode.MaxRects))
             {
                 // 装不下，放行让原版 tryAddItem 走"返回 false"流程
                 return true;
             }
 
-            // 5) 装箱成功 → 执行实际重组
-            //    按 spec：先备份 Item 引用，再循环 removeItem(0)，最后按 result 顺序 addItem。
-            //    注意 result 是算法排序后的列表（FFD 降序），与原背包排列不同。
+            // 5) 装箱成功 -> 执行实际重组
+            //    Placed=true 的物品按 ResultX/Y/Rot 重排
+            //    Placed=false 的物品（异常物品 size=0 等）尝试恢复原位，原位被占则 tryFindSpace
 
-            // 5.1 备份所有现有 ItemJar 的 Item 引用
-            //     （removeItem 不会释放 ItemJar 对象，但我们仍需在备份后操作 Item 实例）
-            // backupJars 已保存 ItemJar 引用，可直接通过 jar.item 取 Item。
-
-            // 5.2 清空当前网格
-            //     spec 要求循环 removeItem(0) 直到 items.Count == 0。
-            //     getItemCount() 是实时变化的，故用 while 检查。
+            // 5.1 清空当前网格
             while (__instance.getItemCount() > 0)
             {
                 __instance.removeItem(0);
             }
 
-            // 5.3 按 result 重新添加
+            // 5.2 按 result 重新添加
             foreach (PackableItem p in result)
             {
                 Item itemToAdd;
@@ -121,7 +116,34 @@ namespace LaunchInventoryTidy.Patches
 
                 if (itemToAdd == null) continue;
 
-                __instance.addItem(p.ResultX, p.ResultY, p.ResultRot, itemToAdd);
+                if (p.Placed)
+                {
+                    // 已放置：按算法结果重排
+                    __instance.addItem(p.ResultX, p.ResultY, p.ResultRot, itemToAdd);
+                }
+                else
+                {
+                    // 未放置（异常物品）：尝试恢复原位（仅对 oldJar 有原位置）
+                    bool restored = false;
+                    if (p.Tag is ItemJar restoreJar)
+                    {
+                        try
+                        {
+                            __instance.addItem(restoreJar.x, restoreJar.y, restoreJar.rot, itemToAdd);
+                            restored = true;
+                        }
+                        catch { }
+                    }
+                    if (!restored)
+                    {
+                        // 原位恢复失败，用 tryFindSpace 找空位
+                        if (__instance.tryFindSpace(p.size_x, p.size_y, out byte fx, out byte fy, out byte fr))
+                        {
+                            __instance.addItem(fx, fy, fr, itemToAdd);
+                        }
+                        // tryFindSpace 也失败则丢弃（极端情况）
+                    }
+                }
             }
 
             // 6) 拦截原方法，告知调用方"已成功放入"
