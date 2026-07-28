@@ -1,0 +1,86 @@
+[Message:   BepInEx] BepInEx 5.4.22.0 - Unturned (2026/7/8 15:02:40)
+[Info   :   BepInEx] Running under Unity v2022.3.62.9860879
+[Info   :   BepInEx] CLR runtime version: 4.0.30319.42000
+[Info   :   BepInEx] Supports SRE: True
+[Info   :   BepInEx] System platform: Bits64, Windows
+[Message:   BepInEx] Preloader started
+[Info   :   BepInEx] Loaded 1 patcher method from [BepInEx.Preloader 5.4.22.0]
+[Info   :   BepInEx] 1 patcher plugin loaded
+[Info   :   BepInEx] Patching [UnityEngine.CoreModule] with [BepInEx.Chainloader]
+[Message:   BepInEx] Preloader finished
+[Message:   BepInEx] Chainloader ready
+[Message:   BepInEx] Chainloader started
+[Info   :   BepInEx] 2 plugins to load
+[Info   :   BepInEx] Loading [LaunchMultiplayerNet 3.2.0.0]
+[Info   :LaunchMultiplayerNet] [NetReflection] initialized (clientTransport=ok, steamPlayerTransport=public-property-direct-access)
+[Info   :LaunchMultiplayerNet] [ModTransport] v3.2 initialized (ITransportConnection + MOD magic, isServer=False)
+[Info   :LaunchMultiplayerNet] [Patch-RecvClient] patched NetMessages.ReceiveMessageFromClient
+[Info   :LaunchMultiplayerNet] [Patch-RecvServer] patched NetMessages.ReceiveMessageFromServer
+[Info   :LaunchMultiplayerNet] [LaunchMultiplayerNet] v3.2.0.0 loaded (ITransportConnection + MOD magic, Harmony patches applied)
+[Info   :   BepInEx] Loading [LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用] 1.4.1]
+[Info   :LaunchMultiplayerNet] [ModTransport] server handler registered: channel=100, total=1
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 已注册 channel=100 服务器端处理器
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] ===============================================
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]]  LaunchInventoryTidy v1.4.1 已加载（v3.2 网络层适配 + MaxRects + 被动整理已禁用）
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]]  注意：被动整理 Patch 已禁用，请用 [整理] 按钮或 Plugin 0 按键手动整理
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] ===============================================
+[Message:   BepInEx] Chainloader startup complete
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=0
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: 容器为空（width=5x height=3），无物品可整理
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=0
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: 容器为空（width=5x height=3），无物品可整理
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=0
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: 容器为空（width=5x height=3），无物品可整理
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=1
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: total=1, placed=1, restored=0, lost=0 (desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=15
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: total=15, placed=15, restored=0, lost=0 (desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=5
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: total=5, placed=5, restored=0, lost=0 (desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: total=5, placed=5, restored=0, lost=0 (desc=True, mode=MaxRects)
+[Warning:LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 3: items.width=0 height=0，跳过（page=7 STORAGE 时表示玩家未在服务器端打开任何容器，工坊虚拟容器可能不走标准 openStorage 路径）
+[Warning:LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 4: items.width=0 height=0，跳过（page=7 STORAGE 时表示玩家未在服务器端打开任何容器，工坊虚拟容器可能不走标准 openStorage 路径）
+[Warning:LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 5: items.width=0 height=0，跳过（page=7 STORAGE 时表示玩家未在服务器端打开任何容器，工坊虚拟容器可能不走标准 openStorage 路径）
+[Warning:LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 6: items.width=0 height=0，跳过（page=7 STORAGE 时表示玩家未在服务器端打开任何容器，工坊虚拟容器可能不走标准 openStorage 路径）
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理全部页 (desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(ALL, desc=True, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=5
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: total=5, placed=5, restored=0, lost=0 (desc=False, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=False, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=False, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=5
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: total=5, placed=5, restored=0, lost=0 (desc=False, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=False, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=False, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=5
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: total=5, placed=5, restored=0, lost=0 (desc=False, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=False, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=False, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=5
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: total=5, placed=5, restored=0, lost=0 (desc=False, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=False, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=False, mode=MaxRects)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=5
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: total=5, placed=5, restored=0, lost=0 (desc=True, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=True, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=True, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=5
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: total=5, placed=5, restored=0, lost=0 (desc=True, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=True, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=True, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器诊断: sender=76561199030780228 page=2 items=Items width=5 height=3 count=5
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [Tidy] page 2: total=5, placed=5, restored=0, lost=0 (desc=True, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] 服务器: 已为 sender=76561199030780228 整理 page=2 (desc=True, mode=FFD)
+[Info   :LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]] [TidyNet] -> 服务器: RequestTidyPage(page=2, desc=True, mode=FFD)

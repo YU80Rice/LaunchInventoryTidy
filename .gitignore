@@ -28,6 +28,9 @@ Release/
 Libs/*.dll
 !Libs/README.md
 
+# ============== 审计归档例外（.audit/ 下的日志文件需要保留作为审计证据） ==============
+!.audit/**/*.log
+
 # ============== 操作系统 ==============
 Thumbs.db
 ehthumbs.db
