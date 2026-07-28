@@ -5,6 +5,75 @@
 
 ---
 
+## [v1.4.1] - 2026/07/28
+
+### 🚨 紧急止损：禁用被动整理 Patch
+
+#### 背景
+
+v1.4.0 的被动整理 Patch（`ItemsTryAddItemPatch`）在 `Items.tryAddItem` 上执行"清空整个网格 + 按 TryPack 结果重新添加"的大规模重组，导致社区反馈 3 个 BUG：
+
+1. **BUG-1**：背包满 + 手上有枪，捡地上的枪被"吞掉"
+2. **BUG-2**：装备栏 + 背包都满，捡地上的枪有收起动作但无替换
+3. **BUG-3**：背包空间不够时合成物品被"吞掉"
+
+#### 根因（经外部审计确认）
+
+**首要确定性根因**（BUG-1/BUG-3）：
+- `InventorySolver.TryPack` 把"尺寸超过当前页面"的新物品排除在 `validCount` 外
+- 即使新物品 `Placed=false`，`placedCount == validCount` 仍可能成立，TryPack 返回 true
+- Patch 对 `Tag=null` 的新物品没有原位可恢复
+- `tryFindSpace` 再次失败后静默跳过
+- **Patch 仍返回 `__result=true`**，违反 `tryAddItem` 成功契约
+- vanilla 调用方（`ItemManager`/`forceAddItem`）据此销毁地面物品或跳过 `dropItem` 兜底
+
+**辅助根因**：
+- 清空整个网格触发 2N 次 Reliable 网络包 + 可能触发 `dequip`
+- `ManualTidyService.TidyPage` 也执行清空+重添，手动整理路径有残余风险
+
+#### 改动
+
+##### 禁用 `ItemsTryAddItemPatch`
+- 移除 `[HarmonyPatch(typeof(Items), "tryAddItem", ...)]` 特性
+- 类留空，仅保留历史参考注释
+- `HarmonyInstance.PatchAll()` 不会发现此类，Patch 不会被注册
+- **不采用**"在 Prefix 内增加条件分支"的方式（审计明确指出会保留误触发面）
+
+##### 版本号升级
+- `AssemblyVersion` / `AssemblyFileVersion`: 1.4.1.0
+- BepInEx 插件名: `LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]`
+- 加载日志增加提示："被动整理 Patch 已禁用，请用 [整理] 按钮或 Plugin 0 按键手动整理"
+
+#### 残余风险声明
+
+**被动整理 Patch 已禁用**，但**手动整理路径仍存在残余风险**：
+- `ManualTidyService.TidyPage` 仍执行"清空整个页面 + 重添"
+- 清空过程触发 `removeItem` 网络包 + 可能触发 `dequip` 动画
+- 重添过程中若 `addItem` 失败，物品可能丢失
+- **在物品守恒验证（id + amount + quality + state 全量比对）完成前，不得宣称手动整理路径生产安全**
+
+#### 未实施的设计
+
+**方案 B（差分移动 + 失败回滚）被外部审计拒绝**，原因：
+- 满网格重排可能形成 A→B→C→A 的占位环，无临时空格时无法逐个差分移动
+- `removeItem`/`addItem` 会立即发送网络事件，事后回滚不能撤销已发送的事件
+- 需要先设计移动依赖图、循环处理、临时隔离区、事件抑制和提交协议
+- 长期更合理的默认方向是保持禁用，而不是重新在 `tryAddItem` 内执行复杂事务
+
+#### 发布门槛（待验证）
+
+v1.4.1 发布前必须满足 8 条门槛：
+1. 反射检查或 Harmony 日志证明 `Items.tryAddItem(Item,bool)` 不再包含该插件 Prefix
+2. 背包满、页面碎片化时捡取大枪：失败应保留地面物品，成功时物品必须存在于背包
+3. primary/secondary 和全部背包页满时捡枪：不得错误销毁地面枪
+4. 空间不足时合成：产物必须进入背包或掉落地面
+5. 记录操作前后物品守恒：`id + amount + quality + state`，不能只比较数量
+6. 客户端与服务器使用相同 v1.4.1 DLL 哈希
+7. README、CHANGELOG 和版本号明确写明"被动整理已禁用"
+8. 对手动 `[整理]` 和 Plugin 0 路径单独标注残余风险；在完成物品守恒验证前，不得宣称其生产安全
+
+---
+
 ## [v1.4.0] - 2026/07/16
 
 ### 🎉 MaxRects 装箱算法 + C/D 模式切换按钮

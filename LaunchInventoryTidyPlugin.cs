@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace LaunchInventoryTidy
 {
-    [BepInPlugin("com.yu80rice.launchinventorytidy", "LaunchInventoryTidy [v1.4 v3.2 网络层适配 + MaxRects]", "1.4.0")]
+    [BepInPlugin("com.yu80rice.launchinventorytidy", "LaunchInventoryTidy [v1.4.1 v3.2 网络层适配 + MaxRects + 被动整理已禁用]", "1.4.1")]
     [BepInDependency(LaunchMultiplayerNetPlugin.Guid, BepInDependency.DependencyFlags.HardDependency)]
     public class LaunchInventoryTidyPlugin : BaseUnityPlugin
     {
@@ -36,7 +36,8 @@ namespace LaunchInventoryTidy
             SpawnManualTidyWatcher();
 
             Logger.LogInfo("===============================================");
-            Logger.LogInfo(" LaunchInventoryTidy v1.4 已加载（v3.2 网络层适配 + MaxRects）");
+            Logger.LogInfo(" LaunchInventoryTidy v1.4.1 已加载（v3.2 网络层适配 + MaxRects + 被动整理已禁用）");
+            Logger.LogInfo(" 注意：被动整理 Patch 已禁用，请用 [整理] 按钮或 Plugin 0 按键手动整理");
             Logger.LogInfo("===============================================");
         }
 

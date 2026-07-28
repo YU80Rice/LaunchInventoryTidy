@@ -1,16 +1,18 @@
 # 🎒 LaunchInventoryTidy
 
 > Unturned 一键整理背包模组 · BepInEx 5 插件
-> v1.4：MaxRects 装箱算法 + C/D 模式切换按钮 + 双端自适应联机
+> v1.4.1：MaxRects 装箱算法 + C/D 模式切换按钮 + **被动整理已禁用**（紧急止损）
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-1.4.0-blue.svg)](./CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.4.1-blue.svg)](./CHANGELOG.md)
 [![.NET](https://img.shields.io/badge/.NET%20Framework-4.7.2-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![Unturned](https://img.shields.io/badge/Unturned-3.x-59B200?logo=steam)](https://store.steampowered.com/app/304930/Unturned/)
 [![BepInEx](https://img.shields.io/badge/BepInEx-5-FF7B00?logo=nuget)](https://github.com/BepInEx/BepInEx)
 [![Harmony](https://img.shields.io/badge/Harmony-2-blue)](https://github.com/pardeike/Harmony)
 
 🌐 **开源仓库**：[github.com/YU80Rice/LaunchInventoryTidy](https://github.com/YU80Rice/LaunchInventoryTidy)
+
+> ⚠️ **v1.4.1 紧急止损声明**：v1.4.0 被动整理 Patch（`ItemsTryAddItemPatch`）在 `Items.tryAddItem` 上执行"清空整个网格 + 重添"的大规模重组，导致社区反馈的 3 个 BUG（捡枪吞掉/收起动作无替换/合成吞物）。v1.4.1 已**彻底禁用被动整理 Patch**。手动整理路径（[整理] 按钮 + Plugin 0 按键）仍保留，但存在残余风险（见下文"残余风险声明"）。
 
 ---
 
@@ -24,7 +26,7 @@
 |---|---|---|---|
 | **LaunchMultiplayerNet** | **v3.2+** | [github.com/YU80Rice/LaunchMultiplayerNet](https://github.com/YU80Rice/LaunchMultiplayerNet) | 双端自适应网络传输层（本插件独占 Channel 100） |
 | BepInEx | 5.x | [github.com/BepInEx/BepInEx](https://github.com/BepInEx/BepInEx) | 模组加载器 |
-| Harmony | 2.x | [github.com/pardeike/Harmony](https://github.com/pardeike/Harmony) | 运行时方法注入（被动整理 Patch） |
+| Harmony | 2.x | [github.com/pardeike/Harmony](https://github.com/pardeike/Harmony) | 运行时 UI 注入；被动整理 Patch 已禁用 |
 | Unturned | 3.x | [store.steampowered.com/app/304930](https://store.steampowered.com/app/304930/Unturned/) | 宿主游戏 |
 | Steamworks.NET | - | [github.com/rlabrecque/Steamworks.NET](https://github.com/rlabrecque/Steamworks.NET) | P2P 传输底层（随 Unturned 分发） |
 
@@ -90,13 +92,27 @@ public const int TidyPage = 100;  // ← 本插件独占
 
 ### ✨ 核心功能
 
-| 入口 | 触发 | 行为 |
-|---|---|---|
-| **被动整理** | 物品被添加到背包时（`Items.tryAddItem` Patch） | 自动重排该页，恒用 C 模式（MaxRects） |
-| **[整理] 按钮** | 标题栏点击 | 整理当前页；`Ctrl + 点击` 一键整理全身 |
-| **[C]/[D] 按钮** | 标题栏点击 | 切换该页整理模式（每页独立记忆） |
-| **[↓]/[↑] 按钮** | 标题栏点击 | 切换该页排序方向（每页独立记忆） |
-| **Plugin 0 按键** | Unturned 原生 Plugin 0 键 | 整理全身（恒用 C 模式 + 降序） |
+| 入口 | 触发 | 行为 | 状态 |
+|---|---|---|---|
+| ~~被动整理~~ | ~~物品被添加到背包时（`Items.tryAddItem` Patch）~~ | ~~自动重排该页~~ | **v1.4.1 已禁用** |
+| **[整理] 按钮** | 标题栏点击 | 整理当前页；`Ctrl + 点击` 一键整理全身 | 保留（有残余风险） |
+| **[C]/[D] 按钮** | 标题栏点击 | 切换该页整理模式（每页独立记忆） | 保留 |
+| **[↓]/[↑] 按钮** | 标题栏点击 | 切换该页排序方向（每页独立记忆） | 保留 |
+| **Plugin 0 按键** | Unturned 原生 Plugin 0 键 | 整理全身（恒用 C 模式 + 降序） | 保留（有残余风险） |
+
+### ⚠️ 残余风险声明（v1.4.1）
+
+**被动整理 Patch 已禁用**，但**手动整理路径仍存在残余风险**：
+
+- `ManualTidyService.TidyPage` 仍执行"清空整个页面 + 按 TryPack 结果重新添加"的大规模重组
+- 清空过程触发 `removeItem` 网络包 + 可能触发 `dequip` 动画
+- 重添过程中若 `addItem` 失败，物品可能丢失（Placed=false 走恢复逻辑，恢复失败则丢失）
+- **在物品守恒验证（id + amount + quality + state 全量比对）完成前，不得宣称手动整理路径生产安全**
+
+**建议**：
+- 手动整理尚未完成安全验证；单机风险低于联机同步场景，但仍需备份存档并核对物品
+- 服务器联机模式下，整理前**手动确认背包物品数量**，整理后再次确认
+- 如发现物品丢失，立即停止使用并反馈日志
 
 ### 🧠 算法核心（v1.4 新增 MaxRects）
 
@@ -145,15 +161,15 @@ public const int TidyPage = 100;  // ← 本插件独占
 ```
 LaunchInventoryTidy/
 ├── LaunchInventoryTidy.csproj           # .NET Framework 4.7.2 库工程
-├── LaunchInventoryTidyPlugin.cs         # BepInEx 插件入口 v1.4.0
+├── LaunchInventoryTidyPlugin.cs         # BepInEx 插件入口 v1.4.1
 ├── InventorySolver.cs                   # 装箱算法（MaxRects + FFD，纯 C# 可单测）
-├── ManualTidyService.cs                 # 整理服务：4 方法签名带 mode 参数
+├── ManualTidyService.cs                 # 整理服务：4 方法签名带 mode 参数（有残余风险）
 ├── ManualTidyNetwork.cs                 # 网络层：Channel 100 协议含 mode 字节
 ├── ManualTidyWatcher.cs                 # MonoBehaviour：监听 Plugin 0 按键
 ├── Patches/
-│   ├── ItemsTryAddItemPatch.cs          # 被动整理：物品添加时重排（恒用 MaxRects）
+│   ├── ItemsTryAddItemPatch.cs          # v1.4.1 已禁用（类留空，无 [HarmonyPatch] 特性）
 │   └── PlayerDashboardInventoryUIPatch.cs # UI 注入：[C]/[↓]/[整理] 三按钮
-├── Properties/AssemblyInfo.cs           # 程序集元数据 v1.4.0.0
+├── Properties/AssemblyInfo.cs           # 程序集元数据 v1.4.1.0
 ├── LICENSE                              # MIT
 ├── README.md                            # 本文件
 ├── CHANGELOG.md                         # 版本演进
