@@ -103,8 +103,10 @@
 | 警告数 | 0 |
 | 输出 DLL | `bin/Release/LaunchInventoryTidy.dll` |
 | DLL 大小 | 30,208 字节 |
-| DLL SHA-256（脏工作树） | `35f4eeacd77e2a77d02e3a6343880444d2a248a94c0c697bc0c98d29c99db228` |
+| DLL SHA-256 | `35f4eeacd77e2a77d02e3a6343880444d2a248a94c0c697bc0c98d29c99db228` |
 | 确定性编译 | `<Deterministic>true</Deterministic>` 已启用 |
+| Git Commit | `ce50bc6`（main 分支） |
+| Git 工作树状态 | clean（哈希从干净 checkout 重建得到一致结果） |
 | 编译时间 | 2026-07-28（本地时区） |
 | AssemblyVersion | 1.4.1.0 |
 | AssemblyFileVersion | 1.4.1.0 |
@@ -128,12 +130,7 @@
 
 ### 哈希基线状态
 
-> ⚠️ 当前哈希基于脏工作树（未提交 + 注释修正后的源码）。按外部审计要求，正式发布前必须：
-> 1. 提交所有代码变更到 git
-> 2. 从干净 checkout 重新 Release 编译
-> 3. 用新哈希作为最终发布基线
->
-> 由于 `<Deterministic>true</Deterministic>` 已启用，提交后从相同 commit 重建将得到相同哈希。
+✅ **已确认**：当前哈希 `35f4eeac...db228` 基于 git commit `ce50bc6`（main 分支）的干净 checkout 重建，结果与脏工作树哈希一致。`<Deterministic>true</Deterministic>` 确保相同源码产出相同哈希，可作为最终发布基线。
 
 ---
 
@@ -234,7 +231,7 @@ quality
 #### 测试 D：双端哈希一致（门槛 6，首轮必须）
 1. 部署 DLL 到客户端 + U3DS
 2. 计算 SHA-256
-3. 通过标准：两端哈希一致且等于基线 `35f4eeac...db228`（注：基线哈希需从干净 commit 重建后最终确定）
+3. 通过标准：两端哈希一致且等于基线 `35f4eeac...db228`（commit `ce50bc6` 干净 checkout 重建确认）
 
 ### 测试报告归档建议
 
