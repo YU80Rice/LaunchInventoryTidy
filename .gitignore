@@ -1,37 +1,26 @@
-# ============== .NET Framework / Visual Studio ==============
+# Build output and IDE state
 bin/
 obj/
+.vs/
+.vscode/
+.idea/
 Debug/
 Release/
-*.dll.config
 *.pdb
 *.suo
 *.user
 *.userprefs
 *.cache
 *.log
-*.tlog
-*.idb
-*.opendb
-*.dbmdl
-*.jfm
 
-# ============== Visual Studio 临时目录 ==============
-.vs/
-.vscode/
-.idea/
-*.sln.docstates
-*.vshost.exe
-*.vshost.exe.config
-
-# ============== 本地依赖 DLL（如把 Unturned 游戏引用放入 Libs/ 子目录） ==============
+# Local runtime dependencies are intentionally not distributed from this repository.
 Libs/*.dll
 !Libs/README.md
 
-# ============== 审计归档例外（.audit/ 下的日志文件需要保留作为审计证据） ==============
-!.audit/**/*.log
+# Large local evidence archives are not source-release artifacts.
+.audit/
 
-# ============== 操作系统 ==============
+# Operating-system files
 Thumbs.db
 ehthumbs.db
 Desktop.ini

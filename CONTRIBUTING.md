@@ -1,21 +1,26 @@
-## 💖 鸣谢与致谢 (Special Thanks)
+# Contributing
 
-本项目的诞生和开源，是一次人类的热爱、友情的鼓励与硅基智能（AI）深度协作的奇妙旅程。在此，我们要向以下所有为本项目提供灵魂、算力、工具和勇气的创作者们，致以最诚挚的谢意：
+## Scope
 
-### 1. 👤 给予我勇气的伙伴们 (My Dear Friends)
-感谢在我最犹豫不决、最害怕自己代码不完美而不敢开源时，默默鼓励我、支持我的朋友们。是你们真诚的赞赏与陪伴，给予了我踏出这关键一步的莫大勇气。这个项目，是我献给所有共同在 PEI 篝火旁度过青春岁月的伙伴们的礼物。
+Contributions must preserve LIT's server-authoritative transaction model. Do not introduce a direct client-side inventory mutation path, a new LMN channel, or a background-thread Unity inventory call without a separate design and audit review.
 
-### 2. 🎮 尼尔森·塞克斯顿 (Nelson Sexton)
-感谢《未转变者》（Unturned）的唯一创作者 Nelson。感谢你在这款游戏发布十周年之际，无私地公开了游戏源码（U3-SDK）。是你开放的胸怀，才让这款承载了我们十年青春的老游戏重新焕发了无限的创作生机。
+## Required checks
 
-### 3. 🚀 PCL2 与 HMCL 的创作者们 (Launchers Inspires)
-感谢经典 Minecraft 启动器 PCL2 作者（龙腾猫跃）与 HMCL 作者及团队。你们极具美学、流畅和极客质感的设计，为我们提供了无限的灵感，证明了"启动器也可以是兼具科技感与艺术温度的杰作"。
+Before opening a change:
 
-### 4. 🍒 樱桃工作室 (Cherry Studio) & 首席程序员"樱爪 (Cherry Claw)"
-感谢优秀的 AI 客户端 Cherry Studio 团队，为我们提供了如此丝滑、强大的 Agent 协作工作流。感谢我的本地 Agent "樱爪（Cherry Claw）"，你是我最可靠的打字机和执行官，无数次在深夜里帮我扫描元数据、解决报错，最终将所有的奇思妙想编译成物理实体。
+1. Build `Release` and `TestHarness` with no newly introduced warnings or errors.
+2. Keep `LaunchInventoryTidy.dll` as the only release DLL. Do not package test harnesses, logs, local reference DLLs, or audit fixtures.
+3. Update `README.md`, `CHANGELOG.md`, `mod_version_history.md`, and `DEPENDENCIES.md` when behavior, version, deployment, or dependency relationships change.
+4. Advance assembly/file/plugin version metadata for every behavior or public-API change.
+5. Preserve the negative constraints in `P2P_PERMANENT_ADMISSION_GATES.md` for P2P-related work.
 
-### 5. 🌊 硅基流动 (SiliconFlow) & 🌋 火山方舟 (Volcengine Ark)
-感谢国内顶尖的大模型托管平台"硅基流动"与字节跳动"火山方舟"。感谢你们提供的高带宽、超低延迟与极度稳定的硅基算力网络，这是支撑我们进行数十轮深度逻辑推理、API 审计与时序分析的最强后盾。
+## Dependency boundaries
 
-### 6. 🧠 硅基顾问 (Gemini)
-感谢陪伴我度过无数个不眠之夜的 AI 总顾问 Gemini。你不仅是我的良师益友，更是最优秀的系统架构师。在每一次面对"P2P 环回死锁"、"游戏无画面"、"100% 卡死"的深水区危机时，都是你用极其透彻的底层图形学和网络套接字分析，帮我精准指明了破局的唯一方向。
+- LIT hard-depends only on LaunchMultiplayerNet at runtime.
+- LIT must not reference SteamP2PFriends types or use reflection to infer P2P mode.
+- SteamP2PFriends may optionally call LIT's public P2P scope entry after its session context is stable.
+- Do not modify LaunchMultiplayerNet, Unturned assemblies, or sibling plugins as part of an LIT fix unless the task explicitly includes them.
+
+## Tests
+
+Single-player and U3DS evidence is required for relevant production changes. P2P changes additionally require the T1-T3 dynamic matrix before any P2P release claim.

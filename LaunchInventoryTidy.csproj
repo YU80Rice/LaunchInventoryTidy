@@ -31,6 +31,14 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'TestHarness|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\TestHarness\</OutputPath>
+    <DefineConstants>TRACE;TIDY_TEST_HARNESS</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>..\Libs\0Harmony.dll</HintPath>
@@ -60,16 +68,45 @@
       <HintPath>..\Libs\LaunchMultiplayerNet.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\Libs\Newtonsoft.Json.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="LaunchInventoryTidyPlugin.cs" />
+    <Compile Include="LmnDependencyGuard.cs" />
+    <Compile Include="PlayerOperationGate.cs" />
+    <Compile Include="MainThreadDispatcher.cs" />
+    <Compile Include="ClientSessionNonce.cs" />
+    <Compile Include="ServerSessionRegistry.cs" />
+    <Compile Include="RequestAdmissionStore.cs" />
     <Compile Include="InventorySolver.cs" />
+    <Compile Include="LayoutCandidate.cs" />
+    <Compile Include="HotkeySnapshot.cs" />
+    <Compile Include="TidyTransaction.cs" />
+    <Compile Include="TidyFaultCircuit.cs" />
+    <Compile Include="TidyFaultCircuitPersistence.cs" />
+    <Compile Include="TidyAdminAuth.cs" />
+    <Compile Include="CommandTidyFaults.cs" />
+    <Compile Include="CommandTidyFaultInjectionTest.cs" />
+    <Compile Include="FaultInjectionTestRunner.cs" />
+    <Compile Include="AutoTestDriver.cs" />
+    <Compile Include="CommandTidyAutoTest.cs" />
+    <Compile Include="ConvergenceCheckBehaviour.cs" />
+    <Compile Include="HotkeyResultWaitBehaviour.cs" />
     <Compile Include="ManualTidyWatcher.cs" />
     <Compile Include="ManualTidyService.cs" />
     <Compile Include="ManualTidyNetwork.cs" />
+    <Compile Include="IndependentSnapshot.cs" />
+    <Compile Include="FixtureValidator.cs" />
+    <Compile Include="TestFixtureSession.cs" />
+    <Compile Include="NetworkTestProbe.cs" />
+    <Compile Include="ShutdownTestProbe.cs" />
+    <Compile Include="ShutdownBarrier.cs" />
     <Compile Include="Patches\ItemsTryAddItemPatch.cs" />
     <Compile Include="Patches\PlayerDashboardInventoryUIPatch.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

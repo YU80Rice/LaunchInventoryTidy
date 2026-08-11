@@ -58,7 +58,8 @@ namespace LaunchInventoryTidy.Patches
             new Dictionary<byte, object>();
 
         // ── 业务状态：每页整理模式字典 + 模式按钮实例引用 ──
-        // key = page (2..7)，value = TidyMode.MaxRects(C) 或 TidyMode.FFD(D)。默认 MaxRects。
+        // v2.0.0：三态模式 SameType(同类) / MaxRects(空间) / FFD(大件)，默认 SameType。
+        // key = page (2..7)，value = TidyMode。默认 SameType=0。
         private static readonly Dictionary<byte, TidyMode> s_PageTidyMode =
             new Dictionary<byte, TidyMode>();
         // key = page，value = 该页模式按钮的反射实例（用于切换文本）。
@@ -66,44 +67,46 @@ namespace LaunchInventoryTidy.Patches
             new Dictionary<byte, object>();
 
         // ── 按钮布局常量 ──
+        // v2.0.0：模式按钮从单字符 "C"/"D" 改为中文 "同类"/"空间"/"大件"，宽度从 40 增至 60。
         // 右侧预留 70px 安全空间，避让原版 "100%" 耐久度文字与绿色品质角标。
         //
         // 排版几何（PositionScale_X = 1，相对父容器右边缘）：
         //   - [整理] 按钮 B：宽 60，PositionOffset_X = -130  -> 右边缘 -70，恰好填满安全区左边界
         //   - [↓]/[↑] 按钮 A：宽 40，PositionOffset_X = -175 -> 右边缘 -135，与 B 左边缘(-130) 间隔 5px
-        //   - [C]/[D]  按钮 M：宽 40，PositionOffset_X = -220 -> 右边缘 -180，与 A 左边缘(-175) 间隔 5px
+        //   - [同类]/[空间]/[大件] 按钮 M：宽 60，PositionOffset_X = -240 -> 右边缘 -180，与 A 左边缘(-175) 间隔 5px
         //
-        // 视觉顺序（从左到右）：[C/D]  5px  [↓/↑]  5px  [整理]  70px  [原版 100% 耐久度+绿色角标]
-        private const float MODE_POS_OFFSET_X  = -220f;
-        private const float MODE_SIZE_X        = 40f;
+        // 视觉顺序（从左到右）：[同类/空间/大件]  5px  [↓/↑]  5px  [整理]  70px  [原版 100% 耐久度+绿色角标]
+        private const float MODE_POS_OFFSET_X  = -240f;
+        private const float MODE_SIZE_X        = 60f;
         private const float DIR_POS_OFFSET_X   = -175f;
         private const float DIR_SIZE_X         = 40f;
         private const float BTN_SIZE_Y         = 60f;
         private const float TIDY_POS_OFFSET_X  = -130f;
         private const float TIDY_SIZE_X        = 60f;
 
-        // ── 容器页（page=STORAGE=7，headers[5]）专用布局 ──
-        // 容器页右侧需避让原版 rot_xButton/rot_yButton/rot_zButton（展示柜场景下可见，
-        // 各 60×60 共 180px，PlayerDashboardInventoryUI.cs:1916 处 header SizeOffset_X=-180）。
-        // 为兼容展示柜，所有容器（含普通储物箱/后备箱）统一让出右侧 180px 安全区。
-        //
-        // 排版几何：
-        //   - [整理] 按钮 B：宽 60，PositionOffset_X = -240 -> 右边缘 -180，恰好填满安全区左边界
-        //   - [↓]/[↑] 按钮 A：宽 40，PositionOffset_X = -285 -> 右边缘 -245，与 B 左边缘(-240) 间隔 5px
-        //   - [C]/[D]  按钮 M：宽 40，PositionOffset_X = -330 -> 右边缘 -290，与 A 左边缘(-285) 间隔 5px
-        //
-        // 视觉顺序：[C/D]  5px  [↓/↑]  5px  [整理]  180px 安全区  [rot_x/y/z 或空]
-        private const float STORAGE_MODE_POS_OFFSET_X = -330f;
+        // ── 容器页（page=STORAGE=7，headers[5]）专用布局（v2.0.1 已弃用）──
+        // v2.0.1：不再为 STORAGE 注入整理按钮。V2 协议仅支持 page 2..6 服装页。
+        // 容器页涉及 InteractableStorage 生命周期、跨玩家并发、工坊虚拟容器等独立权限模型，
+        // 需要单独协议设计，不能与服装页共用同一套规则。
+        // 常量保留仅用于历史参考，不再使用。
+        [Obsolete("v2.0.1 已弃用，STORAGE 页不再注入整理按钮")]
+        private const float STORAGE_MODE_POS_OFFSET_X = -350f;
+        [Obsolete("v2.0.1 已弃用，STORAGE 页不再注入整理按钮")]
         private const float STORAGE_DIR_POS_OFFSET_X  = -285f;
+        [Obsolete("v2.0.1 已弃用，STORAGE 页不再注入整理按钮")]
         private const float STORAGE_TIDY_POS_OFFSET_X = -240f;
 
-        // headers 循环上限：i=0..5 -> page 2..7（含 STORAGE 容器页）
-        private const int HEADER_INJECT_COUNT = 6;
+        // headers 循环上限：i=0..4 -> page 2..6（SLOTS..PANTS 服装页）。
+        // v2.0.1：移除 STORAGE (page=7) 整理按钮注入。
+        // 原因：V2 协议与快捷键逻辑只允许 page 2..6；STORAGE 容器页涉及 InteractableStorage
+        // 生命周期、跨玩家并发、工坊虚拟容器等独立权限模型，不能用同一套规则处理。
+        // 注入按钮到 STORAGE 会造成 UI 可点击但服务端确定性拒绝，属于误导性 UI。
+        private const int HEADER_INJECT_COUNT = 5;
 
         private const string TOOLTIP_TIDY =
             "左键点击：整理当前空间的物品。\nCtrl + 左键点击：一键自动整理全身背包。";
         private const string TOOLTIP_DIR = "切换排序方向（↓ 从大到小 / ↑ 从小到大）";
-        private const string TOOLTIP_MODE = "整理模式：C=剩余大矩形优先 / D=大件优先贪心";
+        private const string TOOLTIP_MODE = "整理模式：同类=相同物品聚合 / 空间=剩余大矩形优先 / 大件=大件优先贪心";
 
         private static void LogError(string msg) => Debug.LogError($"{TAG} {msg}");
         private static void LogInfo(string msg)  => Debug.Log($"{TAG} {msg}");
@@ -302,9 +305,9 @@ namespace LaunchInventoryTidy.Patches
                 LogInfo("CreateButton OK (来自 " + instanceType.Name + ")");
             }
 
-            // 循环注入 6 个标题栏：headers[0..5] -> page 2..7（含 STORAGE 容器页）
-            // i=0..4 服装页用 DIR_POS_OFFSET_X / TIDY_POS_OFFSET_X（让出右侧 70px 避让耐久度角标）
-            // i=5    容器页用 STORAGE_*_POS_OFFSET_X（让出右侧 180px 避让 rot_x/y/z 按钮）
+            // 循环注入 5 个标题栏：headers[0..4] -> page 2..6（SLOTS..PANTS 服装页）
+            // v2.0.1：不再注入 STORAGE (headers[5])，因为 V2 协议不支持容器页整理。
+            // i=0..4 服装页统一用 DIR_POS_OFFSET_X / TIDY_POS_OFFSET_X（让出右侧 70px 避让耐久度角标）
             int injected = 0;
             for (int i = 0; i < HEADER_INJECT_COUNT; i++)
             {
@@ -312,11 +315,10 @@ namespace LaunchInventoryTidy.Patches
                 EnsurePageDefault(currentPage);
                 EnsurePageModeDefault(currentPage);
 
-                // 容器页（i=5, page=7=STORAGE）使用专用偏移避让 rot 按钮区
-                bool isStoragePage = (i == 5);
-                float modePosOffsetX = isStoragePage ? STORAGE_MODE_POS_OFFSET_X : MODE_POS_OFFSET_X;
-                float dirPosOffsetX  = isStoragePage ? STORAGE_DIR_POS_OFFSET_X  : DIR_POS_OFFSET_X;
-                float tidyPosOffsetX = isStoragePage ? STORAGE_TIDY_POS_OFFSET_X : TIDY_POS_OFFSET_X;
+                // 所有注入页（page 2..6）统一使用服装页布局
+                float modePosOffsetX = MODE_POS_OFFSET_X;
+                float dirPosOffsetX  = DIR_POS_OFFSET_X;
+                float tidyPosOffsetX = TIDY_POS_OFFSET_X;
 
                 object headerElement = headers.GetValue(i);
                 if (headerElement == null)
@@ -338,7 +340,7 @@ namespace LaunchInventoryTidy.Patches
                     s_SizeOffsetX.SetValue(modeButton, MODE_SIZE_X,          null);
                     s_SizeOffsetY.SetValue(modeButton, BTN_SIZE_Y,           null);
                     s_Text       .SetValue(modeButton,
-                        s_PageTidyMode[currentPage] == TidyMode.MaxRects ? "C" : "D", null);
+                        GetModeLabel(s_PageTidyMode[currentPage]), null);
                     s_TooltipText.SetValue(modeButton, TOOLTIP_MODE,         null);
                 }
                 catch (Exception e) { LogError($"headers[{i}] modeButton 属性设置失败: {e}"); }
@@ -434,7 +436,19 @@ namespace LaunchInventoryTidy.Patches
         private static void EnsurePageModeDefault(byte page)
         {
             if (!s_PageTidyMode.ContainsKey(page))
-                s_PageTidyMode[page] = TidyMode.MaxRects; // 默认 C 优先
+                s_PageTidyMode[page] = TidyMode.SameType; // v2.0.0 默认同类优先
+        }
+
+        /// <summary>获取模式按钮的中文显示文本。</summary>
+        private static string GetModeLabel(TidyMode mode)
+        {
+            switch (mode)
+            {
+                case TidyMode.SameType: return "同类";
+                case TidyMode.MaxRects: return "空间";
+                case TidyMode.FFD: return "大件";
+                default: return "同类";
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────
@@ -508,17 +522,22 @@ namespace LaunchInventoryTidy.Patches
         }
 
         // ─────────────────────────────────────────────────────────────────
-        // 事件回调：模式按钮点击 -> 切换该页整理模式 + 更新按钮文本
-        // C = MaxRects（剩余大矩形优先），D = FFD（大件优先贪心）
+        // 事件回调：模式按钮点击 -> 三态循环切换 + 更新按钮文本
+        // v2.0.0：同类 -> 空间 -> 大件 -> 同类
         // ─────────────────────────────────────────────────────────────────
         private static void HandleModeClick(byte page)
         {
             EnsurePageModeDefault(page);
-            s_PageTidyMode[page] = s_PageTidyMode[page] == TidyMode.MaxRects
-                ? TidyMode.FFD
-                : TidyMode.MaxRects;
+            TidyMode current = s_PageTidyMode[page];
+            s_PageTidyMode[page] = current switch
+            {
+                TidyMode.SameType => TidyMode.MaxRects,
+                TidyMode.MaxRects => TidyMode.FFD,
+                TidyMode.FFD      => TidyMode.SameType,
+                _                 => TidyMode.SameType,
+            };
 
-            string label = s_PageTidyMode[page] == TidyMode.MaxRects ? "C" : "D";
+            string label = GetModeLabel(s_PageTidyMode[page]);
             if (s_ModeButtons.TryGetValue(page, out object btn) && btn != null)
             {
                 try { s_Text.SetValue(btn, label, null); }
@@ -532,7 +551,7 @@ namespace LaunchInventoryTidy.Patches
         //   - Ctrl 按下 -> 整理全身（用当前页的方向作为统一方向，尊重玩家最近的选择）
         //   - 否则     -> 仅整理当前页
         //
-        // v2.0 架构：房主 = 普通客户端，统一走网络请求 -> U3DS 服务器
+        // v2.0.0 架构：所有请求统一走 V2 协议（含快捷键快照上传 + 服务器事务化整理 + ACK 后绑定）
         // 服务器在 sender 的 inventory 上执行，vanilla onItemAdded/onItemRemoved 事件链
         // 自动同步回所有客机端（含房主）
         // ─────────────────────────────────────────────────────────────────
@@ -555,13 +574,13 @@ namespace LaunchInventoryTidy.Patches
             {
                 if (ctrl)
                 {
-                    LogInfo($"Ctrl+点击 -> 一键整理全身 (方向={desc}, 模式={mode}) [网络请求]");
-                    ManualTidyNetwork.SendTidyAllRequest(desc, mode);
+                    LogInfo($"Ctrl+点击 -> 一键整理全身 (方向={desc}, 模式={GetModeLabel(mode)}) [V2 网络请求]");
+                    ManualTidyNetwork.SendTidyV2Request(ManualTidyNetwork.ALL_PAGES, mode, desc);
                 }
                 else
                 {
-                    LogInfo($"点击 -> 整理 page {page} (方向={desc}, 模式={mode}) [网络请求]");
-                    ManualTidyNetwork.SendTidyPageRequest(page, desc, mode);
+                    LogInfo($"点击 -> 整理 page {page} (方向={desc}, 模式={GetModeLabel(mode)}) [V2 网络请求]");
+                    ManualTidyNetwork.SendTidyV2Request(page, mode, desc);
                 }
             }
             catch (Exception e)
