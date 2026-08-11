@@ -1,12 +1,12 @@
 # LaunchInventoryTidy
 
-`LaunchInventoryTidy` is a BepInEx 5 plugin for Unturned that provides server-authoritative manual inventory tidying with transaction verification, rollback protection, hotkey restoration, request admission, and per-player cooldown controls.
+`LaunchInventoryTidy` 是 Unturned 的 BepInEx 5 背包手动整理插件。它在服务端权威路径上执行整理，并提供事务验证、失败回滚、快捷键恢复、请求准入、玩家级冷却与持久熔断保护。
 
-Current source release: **v3.0.1**
+当前源码与发布版本：**v3.0.1**
 
-## Install
+## 安装
 
-Download `publish/LaunchInventoryTidy.zip` and extract it into the Unturned installation directory. The archive has this exact layout:
+下载 `publish/LaunchInventoryTidy.zip`，解压到 Unturned 游戏根目录。压缩包结构固定为：
 
 ```text
 BepInEx/
@@ -14,74 +14,74 @@ BepInEx/
     LaunchInventoryTidy.dll
 ```
 
-Install the mandatory dependency `LaunchMultiplayerNet.dll` separately into the same `BepInEx/plugins/` directory. It is deliberately not bundled in this archive.
+本压缩包只包含 LIT 本体。请另行安装硬性前置 `LaunchMultiplayerNet.dll`，并放入同一 `BepInEx/plugins/` 目录。
 
-## Dependency and project relationship matrix
+## 前置与其它项目关系
 
-| Project / component | Relationship to LaunchInventoryTidy | Required at runtime |
+| 项目 / 组件 | 与 LIT 的关系 | 运行时是否必需 |
 |---|---|---:|
-| [LaunchMultiplayerNet](https://github.com/YU80Rice/LaunchMultiplayerNet) | Hard BepInEx dependency. Provides the mod transport and LIT owns channel 100. Minimum supported version: **4.0.0**. | Yes |
-| BepInEx 5 | Plugin loader. | Yes |
-| Harmony 2 | Runtime UI patching support. | Yes |
-| Unturned 3.x and its bundled Steamworks.NET assemblies | Host game and game API surface. | Yes |
-| [SteamP2PFriends](https://github.com/YU80Rice/SteamP2PFriends) | Optional P2P Listen Host orchestrator. It may initialize LIT's P2P fault scope through a soft, reflection-based bridge. LIT does not reference SteamP2PFriends. | No for single-player/U3DS |
-| [LaunchInPlaceReload](https://github.com/YU80Rice/LaunchInPlaceReload) | Sibling plugin. It uses LMN channel 101; there is no LIT runtime dependency. | No |
-| [LaunchHordeTracker](https://github.com/YU80Rice/LaunchHordeTracker) | Sibling plugin. It uses LMN channel 102; there is no LIT runtime dependency. | No |
-| [UnturnedModManager](https://github.com/YU80Rice/UnturnedModManager) | Optional launcher/deployment tool. It is not required by LIT. | No |
-| LaunchTidyTestHarness / LaunchP2PDiagnostics | Development and audit tools only. They must never be shipped in the LIT release archive. | No |
+| [LaunchMultiplayerNet](https://github.com/YU80Rice/LaunchMultiplayerNet) | **硬依赖**。提供模组传输层；LIT 独占 Channel 100。最低版本 **4.0.0**。 | 是 |
+| BepInEx 5 | 插件加载器。 | 是 |
+| Harmony 2 | UI 注入与运行时 Patch 支持。 | 是 |
+| Unturned 3.x 与其 Steamworks.NET 组件 | 游戏宿主与 API。 | 是 |
+| [SteamP2PFriends](https://github.com/YU80Rice/SteamP2PFriends) | 可选 P2P Listen Host 协调器。仅在 P2P 中以软依赖、反射桥接方式初始化 LIT 的 P2P 熔断作用域；LIT 不引用它。 | 单机/U3DS 否 |
+| [LaunchInPlaceReload](https://github.com/YU80Rice/LaunchInPlaceReload) | 独立兄弟插件，使用 LMN Channel 101；与 LIT 无运行时依赖。 | 否 |
+| [LaunchHordeTracker](https://github.com/YU80Rice/LaunchHordeTracker) | 独立兄弟插件，使用 LMN Channel 102；与 LIT 无运行时依赖。 | 否 |
+| [UnturnedModManager](https://github.com/YU80Rice/UnturnedModManager) | 可选启动/部署工具，不是 LIT 前置。 | 否 |
+| LaunchTidyTestHarness / LaunchP2PDiagnostics | 仅用于测试和审计，绝不可随 LIT 发布包部署。 | 否 |
 
-See [DEPENDENCIES.md](DEPENDENCIES.md) for channel ownership, direction of optional dependencies, and deployment boundaries.
+更完整的通道、依赖方向与部署边界请阅读 [DEPENDENCIES.md](DEPENDENCIES.md)。
 
-## Environment status
+## 当前环境状态
 
-| Environment | Status | Evidence scope |
+| 环境 | 状态 | 已有证据范围 |
 |---|---|---|
-| Single-player | Verified | Automated suite: conservation, hotkey restoration, fault isolation, and shutdown coverage. |
-| U3DS dedicated server | Verified | Controlled client/server dual-end snapshot comparison, hotkey recovery, and cooldown coverage. |
-| Steam P2P / SteamP2PFriends Listen Host | Alpha, not released | v3.0.1 includes static safety wiring for scoped fault persistence. Dynamic T1-T3 two-machine validation is still required. |
+| 单机 | 已验证 | 自动化覆盖物品守恒、快捷键恢复、故障隔离和关闭流程。 |
+| U3DS 专用服务器 | 已验证 | 受控双端快照比对、快捷键恢复、冷却与部署恢复验证。 |
+| Steam P2P / SteamP2PFriends Listen Host | Alpha，未正式发布 | v3.0.1 已加入作用域隔离与静态安全桥接；仍需完成 T1-T3 双机动态矩阵。 |
 
-Do not describe P2P as production-ready until its dynamic matrix has passed and received a separate audit decision.
+在 P2P 动态矩阵通过并获得独立审计结论前，禁止将 P2P 描述为正式支持或生产可用。
 
-## Safety model
+## 安全模型
 
-- Manual tidy operations run through `Prepare -> fingerprint recheck -> Commit -> Verify/Rollback` on the Unity game thread.
-- Unknown post-commit states fail closed and open the persistent fault circuit rather than applying destructive rollback guesses.
-- Requests are session-bound, replay-checked, leased per player, admitted atomically, and rate-limited.
-- Persistent fault records are scoped by mode, map identity, and save slot. Single-player and P2P records do not share a file.
-- Passive inventory sorting is intentionally disabled. Use the manual UI or the configured Plugin 0 hotkey.
+- 整理事务在 Unity 游戏主线程中执行：`Prepare -> 指纹复核 -> Commit -> Verify/Rollback`。
+- Commit 后若出现未知状态，插件 fail-closed 并打开熔断，不会基于猜测执行破坏性回滚。
+- 请求受会话令牌、重放检查、玩家级 lease、原子准入和冷却限制保护。
+- 持久熔断按运行模式、地图标识与存档槽位隔离；单机与 P2P 不共享熔断文件。
+- 被动拾取整理已永久关闭；请通过整理 UI 或原生 Plugin 0 快捷键手动触发。
 
-## Network channel ownership
+## 网络通道所有权
 
-LIT exclusively owns LaunchMultiplayerNet channel **100**. Do not reuse it in another plugin.
+LIT 独占 LaunchMultiplayerNet 的 **Channel 100**，其它插件不得复用。
 
-| Channel | Owner |
+| Channel | 所有者 |
 |---:|---|
 | 100 | LaunchInventoryTidy |
 | 101 | LaunchInPlaceReload |
 | 102 | LaunchHordeTracker |
-| 103+ | Allocate through the LaunchMultiplayerNet project before use |
+| 103+ | 使用前须在 LaunchMultiplayerNet 项目中登记分配 |
 
-## Build from source
+## 从源码构建
 
-The project targets .NET Framework 4.7.2 and expects local Unturned/BepInEx reference assemblies under `../Libs/`.
+项目目标为 .NET Framework 4.7.2，开发环境需要在 `../Libs/` 提供 Unturned/BepInEx 引用程序集。
 
 ```powershell
 dotnet build .\LaunchInventoryTidy.csproj -c Release -nologo
 ```
 
-The only distributable DLL is:
+唯一可发布 DLL：
 
 ```text
 bin/Release/LaunchInventoryTidy.dll
 ```
 
-TestHarness builds, audit fixtures, generated logs, and local dependency DLLs are not release artifacts.
+TestHarness、测试夹具、审计日志和本地引用 DLL 均不属于发布物。
 
-## Versioning and license
+## 版本与许可
 
-- Assembly and file version: `3.0.1.0`
-- BepInEx plugin version: `3.0.1`
-- DLL filename: always `LaunchInventoryTidy.dll` without a version suffix
-- License: [MIT](LICENSE)
+- Assembly/File Version：`3.0.1.0`
+- BepInEx 插件版本：`3.0.1`
+- DLL 文件名始终为：`LaunchInventoryTidy.dll`（无版本后缀）
+- 许可证：[MIT](LICENSE)
 
-Change history: [CHANGELOG.md](CHANGELOG.md). Detailed project/version record: [mod_version_history.md](mod_version_history.md).
+更新记录见 [CHANGELOG.md](CHANGELOG.md)，版本索引见 [mod_version_history.md](mod_version_history.md)。
