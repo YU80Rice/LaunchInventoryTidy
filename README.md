@@ -1,5 +1,7 @@
 # LaunchInventoryTidy
 
+![LaunchInventoryTidy 封面](assets/launchinventorytidy-cover.png)
+
 `LaunchInventoryTidy` 是 Unturned 的 BepInEx 5 背包手动整理插件。它在服务端权威路径上执行整理，并提供事务验证、失败回滚、快捷键恢复、请求准入、玩家级冷却与持久熔断保护。
 
 当前源码与发布版本：**v3.0.1**
